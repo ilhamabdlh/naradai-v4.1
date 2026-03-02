@@ -1,0 +1,73 @@
+{
+  "exportedAt": "2026-02-13T10:00:00.000Z",
+  "instances": [
+    { "id": "bukalapak", "name": "Bukalapak" },
+    { "id": "kapal_api_12_19_feb_2026", "name": "Kapal API" }
+  ],
+  "schedulers": {
+    "scheduler_ProjectName_1234567890": {
+      "projectId": "scheduler_ProjectName_1234567890",
+      "config": {
+        "project": { "project_name": "My Project" },
+        "data_sources": {},
+        "localization": {},
+        "content": {},
+        "schedule": { "start_time": "", "end_time": null, "backfill": { "days": 7 } }
+      },
+      "startTime": "2026-02-13T08:00:00.000Z",
+      "endTime": "2026-02-20T08:00:00.000Z",
+      "days": 7,
+      "createdAt": "2026-02-13T08:00:00.000Z",
+      "lastTriggered": null,
+      "triggerCount": 0,
+      "isActive": true
+    }
+  },
+  "dashboardContent": {
+    "bukalapak": {
+      "featureVisibility": {
+        "statsOverview": true,
+        "actionRecommendations": true,
+        "outletSatisfaction": true,
+        "risksOpportunities": true,
+        "competitiveAnalysis": true,
+        "recentInsights": true
+      },
+      "statsOverview": [
+        { "id": "1", "label": "Conversations Analyzed", "value": "847.2K", "description": "...", "icon": "Users" }
+      ],
+      "priorityActions": [],
+      "outletSatisfaction": [],
+      "risks": [],
+      "opportunities": [],
+      "competitiveIssues": [],
+      "competitiveKeyInsights": [],
+      "whatsHappeningSentimentTrends": [],
+      "whatsHappeningKeyEvents": [],
+      "whatsHappeningTopTopics": [],
+      "whatsHappeningAITopicAnalysis": [],
+      "whatsHappeningTopicTrendsData": [],
+      "whatsHappeningAITrendAnalysis": [],
+      "whatsHappeningWordCloud": [],
+      "whatsHappeningClusters": [],
+      "whatsHappeningHashtags": [],
+      "whatsHappeningAccounts": [],
+      "whatsHappeningContents": [],
+      "whatsHappeningKOLMatrix": [],
+      "whatsHappeningAIKOLAnalysis": [],
+      "whatsHappeningShareOfPlatform": [],
+      "competitiveMatrixItems": [],
+      "competitiveQuadrantAnalysis": [],
+      "competitiveSentimentScores": [],
+      "competitiveVolumeOfMentions": [],
+      "competitiveShareOfVoice": [],
+      "competitiveBrandLabels": {
+        "yourBrand": "Your Brand",
+        "competitorA": "Competitor A",
+        "competitorB": "Competitor B",
+        "competitorC": "Competitor C",
+        "competitorD": "Competitor D"
+      }
+    }
+  }
+}

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NaradAI – Export untuk Migrasi MongoDB</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 560px; margin: 2rem auto; padding: 0 1rem; }
+    h1 { font-size: 1.25rem; }
+    p { color: #444; }
+    button { padding: 0.5rem 1rem; background: #2563eb; color: #fff; border: none; border-radius: 6px; cursor: pointer; }
+    button:hover { background: #1d4ed8; }
+    .note { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px; padding: 0.75rem; margin: 1rem 0; font-size: 0.9rem; }
+    .warn { background: #fef3c7; border: 1px solid #fcd34d; border-radius: 6px; padding: 0.75rem; margin: 1rem 0; }
+    a { color: #2563eb; }
+  </style>
+</head>
+<body>
+  <h1>Export data untuk migrasi ke MongoDB</h1>
+  <p>Halaman ini membaca data dari <strong>localStorage</strong> (key <code>naradai_*</code>) dan mengunduh satu file JSON untuk dipakai di script import.</p>
+  <div class="note">
+    <strong>Penting:</strong> Buka halaman ini dari <strong>origin yang sama</strong> dengan aplikasi NaradAI (mis. <code>http://localhost:5173</code>). Contoh: jalankan <code>npm run dev</code>, salin file ini ke folder <code>public/</code>, lalu buka <a href="/export-from-browser.html">/export-from-browser.html</a>.
+  </div>
+  <div class="warn" id="warnEmpty" style="display: none;">
+    Daftar instance kosong. Pastikan halaman ini dibuka dari origin yang sama dengan aplikasi (mis. http://localhost:5173).
+  </div>
+  <button type="button" id="btnExport">Export &amp; Download JSON</button>
+  <p id="out" style="margin-top: 1rem; font-size: 0.9rem;"></p>
+
+  <script>
+    (function () {
+      var DASHBOARD_PREFIX = 'naradai_dashboard_content_';
+      var SCHEDULER_KEY = 'naradai_schedulers';
+      var LEGACY_KEY = 'naradai_dashboard_content';
+
+      var DEFAULT_INSTANCES = [
+        { id: 'bukalapak', name: 'Bukalapak' },
+        { id: 'kapal_api_12_19_feb_2026', name: 'Kapal API' },
+        { id: 'kopi_good_day_12_19_feb_2026', name: 'Kopi Good Day' },
+        { id: 'kopi_abc_12_19_feb_2026', name: 'Kopi ABC' },
+        { id: 'kopi_fresco_12_19_feb_2026', name: 'Kopi Fresco' },
+        { id: 'excelso_12_19_feb_2026', name: 'Kopi Excelso' },
+        { id: 'kopi_kapten_12_19_feb_2026', name: 'Kopi Kapten' },
+        { id: 'unakaffe_12_19_feb_2026', name: 'Unakaffe' },
+        { id: 'kopi_pikopi_12_19_feb_2026', name: 'Kopi Pikopi' },
+        { id: 'kopi_ya_12_19_feb_2026', name: 'Kopi YA' },
+        { id: 'pt_santos_jaya_abadi_12_19_feb_2026', name: 'Santos Jaya Abadi' },
+        { id: 'good_day_x_babymonster_feb_2026', name: 'GoodDay X BabyMonster' },
+        { id: 'kacc_12_19_feb_2026', name: 'Kapal Api Coffee Corner' },
+        { id: 'krim_kafe_12_19_feb_2026', name: 'Krim Kafe' }
+      ];
+
+      var INLINE_DEFAULT_DASHBOARD = {
+        featureVisibility: { statsOverview: true, actionRecommendations: true, outletSatisfaction: true, risksOpportunities: true, competitiveAnalysis: true, recentInsights: true },
+        statsOverview: [], priorityActions: [], outletSatisfaction: [], risks: [], opportunities: [],
+        competitiveIssues: [], competitiveKeyInsights: [],
+        whatsHappeningSentimentTrends: [], whatsHappeningKeyEvents: [], whatsHappeningTopTopics: [], whatsHappeningAITopicAnalysis: [], whatsHappeningTopicTrendsData: [], whatsHappeningAITrendAnalysis: [], whatsHappeningWordCloud: [], whatsHappeningClusters: [], whatsHappeningHashtags: [], whatsHappeningAccounts: [], whatsHappeningContents: [], whatsHappeningKOLMatrix: [], whatsHappeningAIKOLAnalysis: [], whatsHappeningShareOfPlatform: [],
+        competitiveMatrixItems: [], competitiveQuadrantAnalysis: [], competitiveSentimentScores: [], competitiveVolumeOfMentions: [], competitiveShareOfVoice: [],
+        competitiveBrandLabels: { yourBrand: 'Your Brand', competitorA: 'Competitor A', competitorB: 'Competitor B', competitorC: 'Competitor C', competitorD: 'Competitor D' }
+      };
+
+      function deepClone(obj) {
+        return JSON.parse(JSON.stringify(obj));
+      }
+
+      function collectExport(defaultDashboard) {
+        var dashboardContent = {};
+        var instanceIds = new Set();
+
+        for (var i = 0; i < localStorage.length; i++) {
+          var key = localStorage.key(i);
+          if (!key || key.indexOf('naradai_') !== 0) continue;
+
+          if (key === SCHEDULER_KEY) continue;
+          if (key === LEGACY_KEY) {
+            try {
+              var raw = localStorage.getItem(key);
+              if (raw) {
+                dashboardContent['bukalapak'] = JSON.parse(raw);
+                instanceIds.add('bukalapak');
+              }
+            } catch (e) {}
+            continue;
+          }
+          if (key.indexOf(DASHBOARD_PREFIX) === 0) {
+            var id = key.slice(DASHBOARD_PREFIX.length);
+            try {
+              var val = localStorage.getItem(key);
+              if (val) {
+                dashboardContent[id] = JSON.parse(val);
+                instanceIds.add(id);
+              }
+            } catch (e) {}
+          }
+        }
+
+        var schedulers = {};
+        try {
+          var s = localStorage.getItem(SCHEDULER_KEY);
+          if (s) schedulers = JSON.parse(s);
+        } catch (e) {}
+
+        var instances = DEFAULT_INSTANCES.slice();
+        instanceIds.forEach(function (id) {
+          if (!instances.some(function (i) { return i.id === id; })) {
+            instances.push({ id: id, name: id });
+          }
+        });
+
+        var fallback = defaultDashboard && typeof defaultDashboard === 'object' ? defaultDashboard : INLINE_DEFAULT_DASHBOARD;
+        instances.forEach(function (inst) {
+          if (!dashboardContent[inst.id]) {
+            dashboardContent[inst.id] = deepClone(fallback);
+          }
+        });
+
+        return {
+          exportedAt: new Date().toISOString(),
+          instances: instances,
+          schedulers: schedulers,
+          dashboardContent: dashboardContent
+        };
+      }
+
+      function downloadJson(obj) {
+        var str = JSON.stringify(obj, null, 2);
+        var blob = new Blob([str], { type: 'application/json' });
+        var name = 'naradai-export-' + new Date().toISOString().slice(0, 10) + '.json';
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = name;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      }
+
+      var btn = document.getElementById('btnExport');
+      var out = document.getElementById('out');
+      var warnEmpty = document.getElementById('warnEmpty');
+
+      btn.addEventListener('click', function () {
+        btn.disabled = true;
+        out.textContent = 'Mengambil default dashboard…';
+        fetch('/default-dashboard-content.json')
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .catch(function () { return null; })
+          .then(function (defaultDashboard) {
+            var data = collectExport(defaultDashboard);
+            warnEmpty.style.display = 'none';
+            downloadJson(data);
+            out.textContent = 'Export selesai. Seluruh instance memiliki data dashboard (seluruh collection). Gunakan import-to-mongodb.mjs dengan file ini.';
+          })
+          .catch(function (err) {
+            var data = collectExport(null);
+            downloadJson(data);
+            out.textContent = 'Export selesai (default inline). Gunakan import-to-mongodb.mjs dengan file ini.';
+          })
+          .then(function () { btn.disabled = false; });
+      });
+    })();
+  </script>
+</body>
+</html>

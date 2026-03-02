@@ -1,0 +1,43 @@
+{
+  "featureVisibility": {
+    "statsOverview": true,
+    "actionRecommendations": true,
+    "outletSatisfaction": true,
+    "risksOpportunities": true,
+    "competitiveAnalysis": true,
+    "recentInsights": true
+  },
+  "statsOverview": [],
+  "priorityActions": [],
+  "outletSatisfaction": [],
+  "risks": [],
+  "opportunities": [],
+  "competitiveIssues": [],
+  "competitiveKeyInsights": [],
+  "whatsHappeningSentimentTrends": [],
+  "whatsHappeningKeyEvents": [],
+  "whatsHappeningTopTopics": [],
+  "whatsHappeningAITopicAnalysis": [],
+  "whatsHappeningTopicTrendsData": [],
+  "whatsHappeningAITrendAnalysis": [],
+  "whatsHappeningWordCloud": [],
+  "whatsHappeningClusters": [],
+  "whatsHappeningHashtags": [],
+  "whatsHappeningAccounts": [],
+  "whatsHappeningContents": [],
+  "whatsHappeningKOLMatrix": [],
+  "whatsHappeningAIKOLAnalysis": [],
+  "whatsHappeningShareOfPlatform": [],
+  "competitiveMatrixItems": [],
+  "competitiveQuadrantAnalysis": [],
+  "competitiveSentimentScores": [],
+  "competitiveVolumeOfMentions": [],
+  "competitiveShareOfVoice": [],
+  "competitiveBrandLabels": {
+    "yourBrand": "Your Brand",
+    "competitorA": "Competitor A",
+    "competitorB": "Competitor B",
+    "competitorC": "Competitor C",
+    "competitorD": "Competitor D"
+  }
+}

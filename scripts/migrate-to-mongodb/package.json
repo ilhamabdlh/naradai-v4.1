@@ -1,0 +1,9 @@
+{
+  "name": "naradai-migrate-to-mongodb",
+  "private": true,
+  "type": "module",
+  "description": "Script export/import migrasi data NaradAI v4 dari localStorage ke MongoDB",
+  "dependencies": {
+    "mongodb": "^6.0.0"
+  }
+}
