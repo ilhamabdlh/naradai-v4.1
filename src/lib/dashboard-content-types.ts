@@ -227,6 +227,17 @@ export interface CompetitiveMatrixItem {
   color: string;
 }
 
+export interface CompetitorOverviewItem {
+  id: string;
+  name: string;
+  keywords: string[];
+  competitivePosition: string;
+  conversations: number;
+  shareOfVoice: number; // percentage 0–100
+  avgSentiment: number; // 0–1
+  color?: string;
+}
+
 export interface QuadrantAnalysisItem {
   id: string;
   label: string;

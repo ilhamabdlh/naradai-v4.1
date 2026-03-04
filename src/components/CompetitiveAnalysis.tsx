@@ -1,9 +1,10 @@
 import { useState, useMemo } from "react";
-import { TrendingUp, Target, AlertTriangle, Lightbulb, ThermometerSun, Volume2, BarChart3, Trophy } from "lucide-react";
+import { TrendingUp, Target, AlertTriangle, Lightbulb, ThermometerSun, Volume2, BarChart3, Trophy, MessageSquare, Mic2, Smile, PieChart } from "lucide-react";
+import { ShareOfPlatform } from "./ShareOfPlatform";
 import { ScatterChart, Scatter, XAxis, YAxis, ZAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Cell, Legend, BarChart, Bar } from "recharts";
 import { CompetitiveMatrixChart } from "./CompetitiveMatrixChart";
 import { useDashboardContent } from "@/contexts/DashboardContentContext";
-import type { CompetitiveHeatmapRow } from "@/lib/dashboard-content-types";
+import type { CompetitiveHeatmapRow, CompetitorOverviewItem } from "@/lib/dashboard-content-types";
 
 interface IssueData {
   issue: string;
@@ -165,6 +166,66 @@ const defaultVolumeHeatmap: HeatmapData[] = [
 
 export function CompetitiveAnalysis() {
   const content = useDashboardContent();
+
+  // --- Competitors Overview defaults ---
+  const defaultCompetitorsOverview: CompetitorOverviewItem[] = [
+    {
+      id: "co1", name: "Your Brand",
+      keywords: ["brand", "official", "original"],
+      competitivePosition: "Market leader with strong innovation and shipping speed, but customer service remains a key vulnerability.",
+      conversations: 9800, shareOfVoice: 34, avgSentiment: 0.72, color: "#8b5cf6",
+    },
+    {
+      id: "co2", name: "Competitor A",
+      keywords: ["competitor a", "rival a", "brand a"],
+      competitivePosition: "Strong challenger with improving customer service scores and growing share of voice.",
+      conversations: 7600, shareOfVoice: 26, avgSentiment: 0.68, color: "#06b6d4",
+    },
+    {
+      id: "co3", name: "Competitor B",
+      keywords: ["competitor b", "rival b", "brand b"],
+      competitivePosition: "Niche player excelling in pricing perception, but limited reach in high-volume topics.",
+      conversations: 6700, shareOfVoice: 23, avgSentiment: 0.65, color: "#f59e0b",
+    },
+    {
+      id: "co4", name: "Competitor C",
+      keywords: ["competitor c", "rival c", "brand c"],
+      competitivePosition: "Growing presence in packaging and app UX discussions, sentiment is improving quarter-over-quarter.",
+      conversations: 7100, shareOfVoice: 24, avgSentiment: 0.66, color: "#10b981",
+    },
+    {
+      id: "co5", name: "Competitor D",
+      keywords: ["competitor d", "rival d", "brand d"],
+      competitivePosition: "Steady performer with moderate visibility; strong in return policy satisfaction but lags in innovation.",
+      conversations: 6800, shareOfVoice: 23, avgSentiment: 0.64, color: "#f43f5e",
+    },
+  ];
+
+  // Derive overview from matrix items when available
+  const competitorsOverview: CompetitorOverviewItem[] = useMemo(() => {
+    const matrixItems = content?.competitiveMatrixItems ?? [];
+    const labels = content?.competitiveBrandLabels;
+    if (matrixItems.length === 0) return defaultCompetitorsOverview;
+
+    const totalMentions = matrixItems.reduce((s, m) => s + m.mentions, 0);
+    return matrixItems.map((item, idx) => {
+      const base = defaultCompetitorsOverview[idx] ?? defaultCompetitorsOverview[0];
+      const nameKey = labels
+        ? Object.entries(labels).find(([, v]) => v === item.name)?.[0]
+        : null;
+      return {
+        id: item.id,
+        name: item.name,
+        keywords: base.keywords,
+        competitivePosition: base.competitivePosition,
+        conversations: item.mentions,
+        shareOfVoice: totalMentions > 0 ? Math.round((item.mentions / totalMentions) * 100) : 0,
+        avgSentiment: item.positivePercentage / 100,
+        color: item.color ?? base.color,
+      } as CompetitorOverviewItem;
+    });
+  }, [content?.competitiveMatrixItems, content?.competitiveBrandLabels]);
+
   const issuesData: IssueData[] = useMemo(() => {
     const list = content?.competitiveIssues ?? [];
     if (list.length === 0) return defaultIssuesData;
@@ -462,6 +523,89 @@ export function CompetitiveAnalysis() {
         <div>
           <h3 className="text-slate-900 mb-1">Competitive Analysis</h3>
           <p className="text-sm text-slate-600">How you compare to competitors across key issues</p>
+        </div>
+      </div>
+
+      {/* Competitors Overview carousel */}
+      <div className="mb-6">
+        <h4 className="text-slate-900 mb-3">Competitors Overview</h4>
+        <div className="flex gap-4 overflow-x-auto pb-2" style={{ scrollbarWidth: "thin" }}>
+          {competitorsOverview.map((comp) => {
+            const sentimentPct = Math.round(comp.avgSentiment * 100);
+
+            return (
+              <div
+                key={comp.id}
+                className="flex-shrink-0 w-72 bg-white rounded-2xl border border-slate-200 shadow-sm p-5 flex flex-col gap-4"
+              >
+                {/* Header */}
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-white font-bold text-sm"
+                    style={{ backgroundColor: comp.color ?? "#8b5cf6" }}
+                  >
+                    {comp.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-slate-900 text-sm truncate">{comp.name}</p>
+                    <p className="text-xs text-slate-500">Competitor</p>
+                  </div>
+                </div>
+
+                {/* Keywords */}
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Keywords</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {comp.keywords.map((kw) => (
+                      <span
+                        key={kw}
+                        className="px-2 py-0.5 rounded-full text-xs font-medium border"
+                        style={{
+                          borderColor: comp.color ?? "#8b5cf6",
+                          color: comp.color ?? "#8b5cf6",
+                          backgroundColor: `${comp.color ?? "#8b5cf6"}18`,
+                        }}
+                      >
+                        {kw}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Competitive Position */}
+                <div>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5">Competitive Position</p>
+                  <p className="text-xs text-slate-700 leading-relaxed">{comp.competitivePosition}</p>
+                </div>
+
+                {/* Stats row */}
+                <div className="grid grid-cols-3 gap-2 pt-3 border-t border-slate-100">
+                  <div className="flex flex-col items-center gap-1 text-center">
+                    <div className="w-7 h-7 rounded-lg bg-violet-50 flex items-center justify-center">
+                      <MessageSquare className="w-3.5 h-3.5 text-violet-500" />
+                    </div>
+                    <p className="text-xs font-bold text-slate-900">{comp.conversations.toLocaleString()}</p>
+                    <p className="text-[10px] text-slate-500 leading-tight">Conversations</p>
+                  </div>
+                  <div className="flex flex-col items-center gap-1 text-center">
+                    <div className="w-7 h-7 rounded-lg bg-cyan-50 flex items-center justify-center">
+                      <Mic2 className="w-3.5 h-3.5 text-cyan-500" />
+                    </div>
+                    <p className="text-xs font-bold text-slate-900">{comp.shareOfVoice}%</p>
+                    <p className="text-[10px] text-slate-500 leading-tight">Share of Voice</p>
+                  </div>
+                  <div className="flex flex-col items-center gap-1 text-center">
+                    <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center">
+                      <Smile className="w-3.5 h-3.5 text-emerald-500" />
+                    </div>
+                    <p className="text-xs font-bold text-slate-900">{sentimentPct}%</p>
+                    <p className="text-[10px] text-slate-500 leading-tight">Avg Sentiment</p>
+                  </div>
+                </div>
+
+                </div>
+            );
+          })}
         </div>
       </div>
 
@@ -843,6 +987,20 @@ export function CompetitiveAnalysis() {
           </div>
         </div>
       </div>
+
+        {/* Share of Platform */}
+        <div id="share-of-platform" className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm mt-6">
+          <div className="flex items-center gap-2 mb-6">
+            <div className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center">
+              <PieChart className="w-4 h-4 text-violet-600" />
+            </div>
+            <div>
+              <h4 className="text-slate-900 mb-0.5">Share of Platform</h4>
+              <p className="text-xs text-slate-600">Historical number of conversations, broken down by platform</p>
+            </div>
+          </div>
+          <ShareOfPlatform />
+        </div>
 
         {/* Share of Voice */}
         <div id="share-of-voice" className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm mt-6">

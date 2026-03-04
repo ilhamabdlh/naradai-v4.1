@@ -1,4 +1,4 @@
-import { TrendingUp, MessageCircle, Users, LineChart, UserCheck, FileText, Hash, BarChart3, Contact } from "lucide-react";
+import { TrendingUp, MessageCircle, Users, LineChart, UserCheck, FileText, Hash, Contact } from "lucide-react";
 import { SentimentChart } from "./SentimentChart";
 import { TopicsChart } from "./TopicsChart";
 import { ConversationClusters } from "./ConversationClusters";
@@ -8,7 +8,6 @@ import { KOLMatrixChart } from "./KOLMatrixChart";
 import { TopContents } from "./TopContents";
 import { TopHashtags } from "./TopHashtags";
 import { TopAccounts } from "./TopAccounts";
-import { ShareOfPlatform } from "./ShareOfPlatform";
 import { ReactNode } from "react";
 
 function Card({ id, icon: Icon, title, subtitle, children, className = "" }: { id?: string; icon: any; title: string; subtitle: string; children: ReactNode; className?: string }) {
@@ -79,15 +78,10 @@ export function RecentInsights() {
           </Card>
         </div>
 
-        {/* Share of Platform - Full Width */}
-        <Card id="share-of-platform" icon={BarChart3} title="Share of Platform" subtitle="Historical number of conversations, broken down by platform" className="mt-6">
-          <ShareOfPlatform />
-        </Card>
-
-        {/* KOL Matrix - Full Width */}
-        <Card id="kol-matrix" icon={UserCheck} title="KOL Matrix" subtitle="Influence vs sentiment" className="mt-6">
-          <KOLMatrixChart />
-        </Card>
+          {/* KOL Matrix - Full Width */}
+          <Card id="kol-matrix" icon={UserCheck} title="KOL Matrix" subtitle="Influence vs sentiment" className="mt-6">
+            <KOLMatrixChart />
+          </Card>
     </section>
   );
 }

@@ -1,0 +1,1 @@
+$base = \"src/components/campaign\" 

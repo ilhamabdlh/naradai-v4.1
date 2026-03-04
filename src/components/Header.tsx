@@ -1,6 +1,5 @@
-import { Sparkles, Bell, Settings, LayoutDashboard, Database, ChevronDown, Lightbulb, LogOut } from "lucide-react";
+import { Sparkles, Bell, Settings, BadgeCheck, Megaphone, Store, Database, LogOut } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import type { Instance } from "@/lib/instances";
 import { getAuthUser, logout } from "@/lib/auth";
 import {
   DropdownMenu,
@@ -11,17 +10,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export type NavPage = "dashboard" | "source-contents" | "insights";
+export type NavPage = "brand-analysis" | "campaign-analysis" | "outlet-analysis" | "source-contents";
 
 interface HeaderProps {
   currentPage: NavPage;
   onNavigate: (page: NavPage) => void;
-  instances: Instance[];
-  currentInstanceId: string;
-  onInstanceChange: (instanceId: string) => void;
 }
 
-export function Header({ currentPage, onNavigate, instances, currentInstanceId, onInstanceChange }: HeaderProps) {
+export function Header({ currentPage, onNavigate }: HeaderProps) {
   const navigate = useNavigate();
   const user = getAuthUser();
 
@@ -47,34 +43,41 @@ export function Header({ currentPage, onNavigate, instances, currentInstanceId, 
               </div>
             </div>
 
-            <div className="relative min-w-[160px]">
-              <select
-                value={currentInstanceId}
-                onChange={(e) => onInstanceChange(e.target.value)}
-                className="w-full appearance-none rounded-xl border border-slate-200 bg-white px-4 py-2.5 pr-9 text-sm font-medium text-slate-900 cursor-pointer hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400"
-                aria-label="Select instance"
-              >
-                {instances.map((inst) => (
-                  <option key={inst.id} value={inst.id}>
-                    {inst.name}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
-            </div>
             
             {/* Navigation */}
             <nav className="flex items-center gap-2 ml-2">
               <button
-                onClick={() => handleNav("dashboard")}
+                onClick={() => handleNav("brand-analysis")}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  currentPage === "dashboard"
+                  currentPage === "brand-analysis"
                     ? "bg-gradient-to-r from-violet-500 to-cyan-500 text-white shadow-md"
                     : "text-slate-600 hover:bg-slate-100"
                 }`}
               >
-                <LayoutDashboard className="w-4 h-4" />
-                Dashboard
+                <BadgeCheck className="w-4 h-4" />
+                Brand Analysis
+              </button>
+              <button
+                onClick={() => handleNav("campaign-analysis")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  currentPage === "campaign-analysis"
+                    ? "bg-gradient-to-r from-violet-500 to-cyan-500 text-white shadow-md"
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                <Megaphone className="w-4 h-4" />
+                Campaign Analysis
+              </button>
+              <button
+                onClick={() => handleNav("outlet-analysis")}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  currentPage === "outlet-analysis"
+                    ? "bg-gradient-to-r from-violet-500 to-cyan-500 text-white shadow-md"
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                <Store className="w-4 h-4" />
+                Outlet Analysis
               </button>
               <button
                 onClick={() => handleNav("source-contents")}
@@ -87,17 +90,7 @@ export function Header({ currentPage, onNavigate, instances, currentInstanceId, 
                 <Database className="w-4 h-4" />
                 Source Contents
               </button>
-              <button
-                onClick={() => handleNav("insights")}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  currentPage === "insights"
-                    ? "bg-gradient-to-r from-violet-500 to-cyan-500 text-white shadow-md"
-                    : "text-slate-600 hover:bg-slate-100"
-                }`}
-              >
-                <Lightbulb className="w-4 h-4" />
-                Insights
-              </button>
+
             </nav>
           </div>
           

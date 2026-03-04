@@ -10,6 +10,33 @@ const iconMap: Record<string, typeof Users> = {
   MessageSquare: BarChart3,
 };
 
+const cardStyles: {
+  color: string;
+  iconBg: string;
+  iconText: string;
+}[] = [
+  {
+    color: "from-violet-400 to-indigo-500",
+    iconBg: "from-violet-50 to-indigo-50",
+    iconText: "text-violet-600",
+  },
+  {
+    color: "from-emerald-400 to-teal-500",
+    iconBg: "from-emerald-50 to-teal-50",
+    iconText: "text-emerald-600",
+  },
+  {
+    color: "from-red-400 to-rose-500",
+    iconBg: "from-red-50 to-rose-50",
+    iconText: "text-red-600",
+  },
+  {
+    color: "from-cyan-400 to-sky-500",
+    iconBg: "from-cyan-50 to-sky-50",
+    iconText: "text-cyan-600",
+  },
+];
+
 export const STATS_SECTION_ID = "overview";
 
 const defaultStats = [
@@ -25,21 +52,31 @@ export function StatsOverview() {
   const [openTooltip, setOpenTooltip] = useState<string | null>(null);
 
   return (
-    <div id={STATS_SECTION_ID} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-      {stats.map((stat) => {
-        const Icon = iconMap[stat.icon] ?? BarChart3;
-        return (
-          <div
-            key={stat.id}
-            className="relative overflow-hidden rounded-2xl bg-white backdrop-blur-sm border border-slate-200 p-6 hover:border-violet-300 transition-colors shadow-sm hover:shadow-md"
-          >
-            <div className="mb-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-100 to-cyan-100 flex items-center justify-center">
-                <Icon className="w-6 h-6 text-violet-600" />
+    <div id={STATS_SECTION_ID} className="space-y-6">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center shadow-md">
+          <BarChart3 className="w-5 h-5 text-white" />
+        </div>
+        <div>
+          <h2 className="text-xl font-bold text-slate-900">Brand Overview</h2>
+          <p className="text-sm text-slate-500">Key metrics and conversation snapshot for your brand</p>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((stat, i) => {
+          const Icon = iconMap[stat.icon] ?? BarChart3;
+          const style = cardStyles[i % cardStyles.length];
+          return (
+            <div
+              key={stat.id}
+              className="relative overflow-hidden rounded-2xl bg-white border border-slate-200 p-6 hover:border-violet-300 transition-colors shadow-sm hover:shadow-md"
+            >
+              <div className="mb-4">
+                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${style.iconBg} flex items-center justify-center`}>
+                  <Icon className={`w-6 h-6 ${style.iconText}`} />
+                </div>
               </div>
-            </div>
-            <div>
-              <div className="text-3xl text-slate-900 mb-1">{stat.value}</div>
+              <div className="text-3xl font-bold text-slate-900 mb-1">{stat.value}</div>
               <div className="flex items-center gap-1.5">
                 <span className="text-sm text-slate-600">{stat.label}</span>
                 <div className="relative">
@@ -61,10 +98,11 @@ export function StatsOverview() {
                   )}
                 </div>
               </div>
+              <div className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${style.color}`} />
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }

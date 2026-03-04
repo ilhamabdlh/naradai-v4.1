@@ -31,35 +31,34 @@ const navItems: NavItem[] = [
   { id: "priority-actions", label: "Priority Actions", icon: Target },
   { id: "outlet-satisfaction", label: "Outlet Satisfaction", icon: MapPin },
   { id: "risks-opportunities", label: "Risks & Opportunities", icon: ShieldAlert },
-  {
-    id: "competitive-analysis",
-    label: "Competitive Analysis",
-    icon: Swords,
-    children: [
-      { id: "competitive-analysis", label: "Issues Matrix" },
-      { id: "competitive-matrix", label: "Competitive Matrix" },
-      { id: "competitive-heatmaps", label: "Heatmaps" },
-      { id: "share-of-voice", label: "Share of Voice" },
-    ],
-  },
-  {
-    id: "whats-happening",
-    label: "What's Happening",
-    icon: TrendingUp,
-    children: [
-      { id: "sentiment-trends", label: "Sentiment Trends" },
-      { id: "top-topics", label: "Top Discussion Topics" },
-      { id: "topic-trends", label: "Topic Trends Over Time" },
-      { id: "word-cloud", label: "Word Cloud" },
-      { id: "conversation-clusters", label: "Conversation Clusters" },
-      { id: "top-hashtags", label: "Top Hashtags" },
-      { id: "top-accounts", label: "Top Accounts" },
-      { id: "top-contents", label: "Top Contents" },
-      { id: "share-of-voice", label: "Share of Voice" },
-      { id: "share-of-platform", label: "Share of Platform" },
-      { id: "kol-matrix", label: "KOL Matrix" },
-    ],
-  },
+    {
+      id: "competitive-analysis",
+      label: "Competitive Analysis",
+      icon: Swords,
+      children: [
+        { id: "competitive-analysis", label: "Issues Matrix" },
+        { id: "competitive-matrix", label: "Competitive Matrix" },
+        { id: "competitive-heatmaps", label: "Heatmaps" },
+        { id: "share-of-platform", label: "Share of Platform" },
+        { id: "share-of-voice", label: "Share of Voice" },
+      ],
+    },
+    {
+      id: "whats-happening",
+      label: "What's Happening",
+      icon: TrendingUp,
+      children: [
+        { id: "sentiment-trends", label: "Sentiment Trends" },
+        { id: "top-topics", label: "Top Discussion Topics" },
+        { id: "topic-trends", label: "Topic Trends Over Time" },
+        { id: "word-cloud", label: "Word Cloud" },
+        { id: "conversation-clusters", label: "Conversation Clusters" },
+        { id: "top-hashtags", label: "Top Hashtags" },
+        { id: "top-accounts", label: "Top Accounts" },
+        { id: "top-contents", label: "Top Contents" },
+        { id: "kol-matrix", label: "KOL Matrix" },
+      ],
+    },
 ];
 
 export function NavSidebar() {
