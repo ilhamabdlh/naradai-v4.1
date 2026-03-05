@@ -1,54 +1,40 @@
 import { Heart, Share2, MessageCircle, Info } from "lucide-react";
 import { useState } from "react";
+import { useDashboardContent } from "@/contexts/DashboardContentContext";
+import { defaultDashboardContent } from "@/lib/dashboard-content-store";
 
-const stats = [
-  {
-    label: "Total Likes",
-    value: "186K",
-    change: "+22%",
-    positive: true,
-    icon: Heart,
-    description: "Total likes received across all campaign posts.",
+const ICON_MAP: Record<string, typeof Heart> = {
+  Heart,
+  Share2,
+  MessageCircle,
+};
+
+const COLOR_MAP: Record<string, { color: string; iconBg: string; iconText: string }> = {
+  Heart: {
     color: "from-pink-400 to-rose-500",
     iconBg: "from-pink-50 to-rose-50",
     iconText: "text-rose-600",
   },
-  {
-    label: "Total Shares",
-    value: "28.4K",
-    change: "+14%",
-    positive: true,
-    icon: Share2,
-    description: "Total shares and reposts across all platforms.",
+  Share2: {
     color: "from-violet-400 to-violet-600",
     iconBg: "from-violet-50 to-indigo-50",
     iconText: "text-violet-600",
   },
-  {
-    label: "Total Replies",
-    value: "41.2K",
-    change: "+31%",
-    positive: true,
-    icon: MessageCircle,
-    description: "Total replies and comments on campaign posts.",
+  MessageCircle: {
     color: "from-cyan-400 to-sky-500",
     iconBg: "from-cyan-50 to-sky-50",
     iconText: "text-cyan-600",
   },
-  {
-    label: "Positive Reply Rate",
-    value: "74%",
-    change: "+5pts",
-    positive: true,
-    icon: MessageCircle,
-    description: "Percentage of replies classified as positive sentiment.",
-    color: "from-emerald-400 to-teal-500",
-    iconBg: "from-emerald-50 to-teal-50",
-    iconText: "text-emerald-600",
-  },
+};
+
+const EMERALD_OVERRIDE = [
+  "Positive Reply Rate",
+  "Positive",
 ];
 
 export function CampaignOverview() {
+  const content = useDashboardContent();
+  const stats = content?.campaignStats ?? defaultDashboardContent.campaignStats ?? [];
   const [openTooltip, setOpenTooltip] = useState<string | null>(null);
 
   return (
@@ -63,16 +49,21 @@ export function CampaignOverview() {
         </div>
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
+        {stats.map((stat, idx) => {
+          const iconKey = stat.icon as keyof typeof ICON_MAP;
+          const Icon = ICON_MAP[iconKey] ?? Heart;
+          const isEmerald = EMERALD_OVERRIDE.some((l) => stat.label.includes(l));
+          const colors = isEmerald
+            ? { color: "from-emerald-400 to-teal-500", iconBg: "from-emerald-50 to-teal-50", iconText: "text-emerald-600" }
+            : COLOR_MAP[iconKey] ?? COLOR_MAP["Heart"];
           return (
             <div
-              key={stat.label}
+              key={stat.id ?? idx}
               className="relative overflow-hidden rounded-2xl bg-white border border-slate-200 p-6 hover:border-violet-300 transition-colors shadow-sm hover:shadow-md"
             >
               <div className="mb-4">
-                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.iconBg} flex items-center justify-center`}>
-                  <Icon className={`w-6 h-6 ${stat.iconText}`} />
+                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${colors.iconBg} flex items-center justify-center`}>
+                  <Icon className={`w-6 h-6 ${colors.iconText}`} />
                 </div>
               </div>
               <div className="text-3xl font-bold text-slate-900 mb-1">{stat.value}</div>
@@ -99,7 +90,7 @@ export function CampaignOverview() {
                   {stat.change}
                 </span>
               </div>
-              <div className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${stat.color}`} />
+              <div className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${colors.color}`} />
             </div>
           );
         })}

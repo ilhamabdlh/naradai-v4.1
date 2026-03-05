@@ -321,6 +321,213 @@ export interface DashboardContentStore {
   competitiveBrandLabels?: CompetitiveBrandLabels;
   /** Raw content untuk tab Source Contents (Social Media, Reviews, News). */
   rawSourceContents?: RawSourceContentItem[];
+
+  // ─── Campaign Analysis ────────────────────────────────────────────────────
+  campaignStats?: CampaignStatItem[];
+  campaignPerformance?: CampaignItem[];
+  campaignTrendData?: CampaignTrendDataPoint[];
+  campaignTimeSeriesData?: CampaignTimeSeriesPoint[];
+  campaignPostPublishEvents?: CampaignPostPublishEvent[];
+  campaignKeyEvents?: CampaignKeyEvent[];
+  campaignReplySentiment?: CampaignReplySentimentOverall;
+  campaignReplyTopics?: CampaignReplyTopicCluster[];
+  campaignContentTypes?: CampaignContentTypeItem[];
+  campaignTopPosts?: CampaignTopPostItem[];
+  campaignChannels?: CampaignChannelItem[];
+  campaignCompetitors?: CampaignCompetitorItem[];
+  campaignRecommendations?: CampaignRecommendationItem[];
+
+  // ─── Outlet Analysis ──────────────────────────────────────────────────────
+  outletStats?: OutletStatItem[];
+  outletPriorityActions?: OutletPriorityActionItem[];
+  outletMapData?: OutletMapDataItem[];
+  outletSentimentOverall?: { positive: number; neutral: number; negative: number };
+  outletSentimentByOutlet?: OutletSentimentByOutletItem[];
+  outletTopics?: OutletTopicItem[];
+  outletRecentReviews?: OutletRecentReviewItem[];
+}
+
+// ─── Campaign Analysis Types ───────────────────────────────────────────────
+
+export interface CampaignStatItem {
+  id: string;
+  label: string;
+  value: string;
+  change: string;
+  positive: boolean;
+  description: string;
+  icon: string;
+}
+
+export interface CampaignItem {
+  id: string;
+  name: string;
+  platform: string;
+  likes: number;
+  shares: number;
+  replies: number;
+  status: "active" | "completed" | "paused";
+  sentiment: number;
+}
+
+export interface CampaignTrendDataPoint {
+  id: string;
+  month: string;
+  likes: number;
+  shares: number;
+  replies: number;
+}
+
+export interface CampaignTimeSeriesPoint {
+  id: string;
+  date: string;
+  likes: number;
+  replies: number;
+  shares: number;
+}
+
+export interface CampaignPostPublishEvent {
+  id: string;
+  date: string;
+  label: string;
+  type: "reel" | "thread" | "carousel" | "image" | "short_video" | "live_stream";
+}
+
+export interface CampaignKeyEvent {
+  id: string;
+  date: string;
+  title: string;
+  type: "pivot" | "spike" | "drop";
+  insight: string;
+}
+
+export interface CampaignReplySentimentOverall {
+  positive: number;
+  neutral: number;
+  negative: number;
+}
+
+export interface CampaignReplyTopicCluster {
+  id: string;
+  topic: string;
+  totalReplies: number;
+  positive: number;
+  neutral: number;
+  negative: number;
+  topComments: string[];
+}
+
+export interface CampaignContentTypeItem {
+  id: string;
+  type: string;
+  platform: string;
+  posts: number;
+  likes: number;
+  shares: number;
+  replies: number;
+  positiveSentiment: number;
+  negativeSentiment: number;
+  topTopics: string[];
+  audienceReaction: string;
+}
+
+export interface CampaignTopPostItem {
+  id: string;
+  type: string;
+  title: string;
+  platform: string;
+  likes: number;
+  shares: number;
+  replies: number;
+  sentiment: number;
+}
+
+export interface CampaignChannelItem {
+  id: string;
+  name: string;
+  likes: number;
+  replies: number;
+  shares: number;
+  posts: number;
+  icon: string;
+  color: string;
+}
+
+export interface CampaignCompetitorItem {
+  id: string;
+  brand: string;
+  posts: number;
+  likes: number;
+  replies: number;
+  shares: number;
+  sentiment: number;
+}
+
+export interface CampaignRecommendationItem {
+  id: string;
+  priority: "high" | "medium" | "low";
+  title: string;
+  detail: string;
+  impact: string;
+}
+
+// ─── Outlet Analysis Types ──────────────────────────────────────────────────
+
+export interface OutletStatItem {
+  id: string;
+  label: string;
+  value: string;
+  change: string;
+  positive: boolean;
+  description: string;
+  icon: string;
+}
+
+export interface OutletPriorityActionItem {
+  id: string;
+  priority: "high" | "medium" | "low";
+  outlet: string;
+  region: string;
+  title: string;
+  detail: string;
+  impact: string;
+}
+
+export interface OutletMapDataItem {
+  id: string;
+  name: string;
+  region: string;
+  city: string;
+  lat: number;
+  lng: number;
+  status: "critical" | "warning" | "good";
+  satisfaction: number;
+  reviews: number;
+  issues: string[];
+}
+
+export interface OutletSentimentByOutletItem {
+  id: string;
+  name: string;
+  positive: number;
+  neutral: number;
+  negative: number;
+}
+
+export interface OutletTopicItem {
+  id: string;
+  topic: string;
+  mentions: number;
+  positive: number;
+  negative: number;
+}
+
+export interface OutletRecentReviewItem {
+  id: string;
+  outlet: string;
+  sentiment: "positive" | "negative" | "neutral";
+  text: string;
+  stars: number;
 }
 
 export const defaultFeatureVisibility: FeatureVisibility = {

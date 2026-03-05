@@ -1,13 +1,7 @@
 import { Target } from "lucide-react";
 import { Heart, Share2, MessageCircle } from "lucide-react";
-
-const campaigns = [
-  { name: "Summer Launch 2025",       platform: "Instagram",  likes: 48200,  shares: 3200,  replies: 1840, status: "active",    sentiment: 0.78 },
-  { name: "Year-End Sale",            platform: "TikTok",     likes: 92400,  shares: 12800, replies: 4100, status: "completed", sentiment: 0.65 },
-  { name: "Brand Awareness Q1",       platform: "Twitter/X",  likes: 8200,   shares: 2400,  replies: 920,  status: "active",    sentiment: 0.71 },
-  { name: "Product Launch - ProMax",  platform: "YouTube",    likes: 18400,  shares: 1100,  replies: 680,  status: "paused",    sentiment: 0.55 },
-  { name: "Influencer Collab Series", platform: "Instagram",  likes: 61400,  shares: 8900,  replies: 5100, status: "active",    sentiment: 0.82 },
-];
+import { useDashboardContent } from "@/contexts/DashboardContentContext";
+import { defaultDashboardContent } from "@/lib/dashboard-content-store";
 
 const statusColors: Record<string, string> = {
   active:    "bg-emerald-100 text-emerald-700",
@@ -20,6 +14,9 @@ function fmt(n: number) {
 }
 
 export function CampaignPerformance() {
+  const content = useDashboardContent();
+  const campaigns = content?.campaignPerformance ?? defaultDashboardContent.campaignPerformance ?? [];
+
   return (
     <div id="campaign-performance" className="space-y-5">
       <div className="flex items-center gap-3">
@@ -52,7 +49,7 @@ export function CampaignPerformance() {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {campaigns.map((c) => (
-              <tr key={c.name} className="hover:bg-slate-50 transition-colors">
+              <tr key={c.id} className="hover:bg-slate-50 transition-colors">
                 <td className="px-5 py-4 font-medium text-slate-800">{c.name}</td>
                 <td className="px-4 py-4 text-slate-600">{c.platform}</td>
                 <td className="px-4 py-4 text-right text-rose-600 font-medium">{fmt(c.likes)}</td>
@@ -70,7 +67,7 @@ export function CampaignPerformance() {
                   </div>
                 </td>
                 <td className="px-4 py-4 text-center">
-                  <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[c.status]}`}>
+                  <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[c.status] ?? "bg-slate-100 text-slate-600"}`}>
                     {c.status.charAt(0).toUpperCase() + c.status.slice(1)}
                   </span>
                 </td>

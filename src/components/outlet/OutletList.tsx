@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
 import { List, Search, ChevronUp, ChevronDown, Star, MessageSquare } from "lucide-react";
-import { OUTLETS } from "./OutletMap";
+import { OUTLETS, type OutletData } from "./OutletMap";
+import { useDashboardContent } from "@/contexts/DashboardContentContext";
+import { defaultDashboardContent } from "@/lib/dashboard-content-store";
 
 type SortKey = "name" | "satisfaction" | "reviews" | "status";
 type SortDir = "asc" | "desc";
@@ -58,6 +60,23 @@ function SortHeader({
 }
 
 export function OutletList() {
+  const content = useDashboardContent();
+  const outletMapData = content?.outletMapData ?? defaultDashboardContent.outletMapData ?? [];
+  const allOutlets: OutletData[] = outletMapData.length > 0
+    ? outletMapData.map((o) => ({
+        id: o.id,
+        name: o.name,
+        region: o.region,
+        city: o.city,
+        lat: o.lat,
+        lng: o.lng,
+        status: o.status,
+        satisfaction: o.satisfaction,
+        reviews: o.reviews,
+        issues: o.issues,
+      }))
+    : OUTLETS;
+
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [sortKey, setSortKey] = useState<SortKey>("status");
@@ -76,7 +95,7 @@ export function OutletList() {
   };
 
   const filtered = useMemo(() => {
-    let list = [...OUTLETS];
+    let list = [...allOutlets];
     if (query.trim()) {
       const q = query.toLowerCase();
       list = list.filter((o) => o.name.toLowerCase().includes(q) || o.city.toLowerCase().includes(q) || o.region.toLowerCase().includes(q));
@@ -105,7 +124,7 @@ export function OutletList() {
         </div>
         <div>
           <h2 className="text-xl font-bold text-slate-900">All Outlets</h2>
-          <p className="text-sm text-slate-500">Search, sort and filter across {OUTLETS.length} outlet locations</p>
+          <p className="text-sm text-slate-500">Search, sort and filter across {allOutlets.length} outlet locations</p>
         </div>
       </div>
 

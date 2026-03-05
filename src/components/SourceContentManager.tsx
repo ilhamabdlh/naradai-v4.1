@@ -35,6 +35,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
@@ -42,7 +43,9 @@ import {
   saveDashboardContent,
   defaultDashboardContent,
   generateId,
+  clearAllDashboardContent,
 } from "@/lib/dashboard-content-store";
+import { getInitialDashboardContentForInstance } from "@/lib/initial-data";
 import type {
   DashboardContentStore,
   StatItem,
@@ -74,10 +77,26 @@ import type {
   CompetitiveBrandLabels,
   FeatureVisibilityKey,
   FeatureVisibility,
+  CampaignStatItem,
+  CampaignItem,
+  CampaignRecommendationItem,
+  CampaignCompetitorItem,
+  CampaignChannelItem,
+  CampaignReplyTopicCluster,
+  CampaignKeyEvent,
+  CampaignPostPublishEvent,
+  OutletStatItem,
+  OutletPriorityActionItem,
+  OutletMapDataItem,
+  OutletTopicItem,
+  OutletRecentReviewItem,
+  OutletSentimentByOutletItem,
 } from "@/lib/dashboard-content-types";
 import { defaultFeatureVisibility } from "@/lib/dashboard-content-types";
 
-type SectionId =
+type ParentTab = "brand" | "campaign" | "outlet-analysis";
+
+type BrandSectionId =
   | "stats"
   | "actions"
   | "outlets"
@@ -86,14 +105,22 @@ type SectionId =
   | "competitive"
   | "whats-happening";
 
-const SECTIONS: { id: SectionId; label: string; icon: typeof BarChart3 }[] = [
-  { id: "stats", label: "Stats Overview", icon: BarChart3 },
-  { id: "actions", label: "Priority Actions", icon: Target },
-  { id: "outlets", label: "Outlet Satisfaction", icon: MapPin },
-  { id: "risks", label: "Risks", icon: ShieldAlert },
-  { id: "opportunities", label: "Opportunities", icon: Lightbulb },
-  { id: "competitive", label: "Competitive Analysis", icon: Swords },
-  { id: "whats-happening", label: "What's Happening", icon: TrendingUp },
+type SectionId = BrandSectionId | "campaign" | "outlet-analysis";
+
+const PARENT_TABS: { id: ParentTab; label: string; icon: typeof BarChart3 }[] = [
+  { id: "brand",           label: "Brand Analysis",    icon: BarChart3 },
+  { id: "campaign",        label: "Campaign Analysis", icon: LineChart },
+  { id: "outlet-analysis", label: "Outlet Analysis",   icon: Contact },
+];
+
+const BRAND_SECTIONS: { id: BrandSectionId; label: string; icon: typeof BarChart3 }[] = [
+  { id: "stats",           label: "Stats Overview",     icon: BarChart3 },
+  { id: "actions",         label: "Priority Actions",   icon: Target },
+  { id: "outlets",         label: "Outlet Satisfaction",icon: MapPin },
+  { id: "risks",           label: "Risks",              icon: ShieldAlert },
+  { id: "opportunities",   label: "Opportunities",      icon: Lightbulb },
+  { id: "competitive",     label: "Competitive Analysis",icon: Swords },
+  { id: "whats-happening", label: "What's Happening",   icon: TrendingUp },
 ];
 
 const VISIBILITY_FEATURES: { id: FeatureVisibilityKey; label: string; description: string; icon: typeof BarChart3 }[] = [
@@ -114,11 +141,15 @@ type ManageView = "data" | "visibility";
 export function SourceContentManager({ instanceId }: SourceContentManagerProps) {
   const [store, setStore] = useState<DashboardContentStore>(defaultDashboardContent);
   const [manageView, setManageView] = useState<ManageView>("data");
-  const [activeSection, setActiveSection] = useState<SectionId>("stats");
+  const [activeParentTab, setActiveParentTab] = useState<ParentTab>("brand");
+  const [activeBrandSection, setActiveBrandSection] = useState<BrandSectionId>("stats");
   const [competitiveSubTab, setCompetitiveSubTab] = useState<"issues" | "insights" | "matrix" | "sentiment" | "volume" | "sov">("issues");
   const [whatsHappeningSubTab, setWhatsHappeningSubTab] = useState<string>("sentiment");
+  const [campaignSubTab, setCampaignSubTab] = useState<"stats" | "performance" | "channels" | "competitors" | "recommendations" | "replyTopics" | "keyEvents" | "postEvents">("stats");
+  const [outletAnalysisSubTab, setOutletAnalysisSubTab] = useState<"stats" | "priorityActions" | "mapData" | "sentimentByOutlet" | "topics" | "reviews">("stats");
   const [loaded, setLoaded] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const lastSavedInstanceIdRef = useRef<string>(instanceId);
   const visibility = (store.featureVisibility ?? defaultFeatureVisibility) as FeatureVisibility;
 
@@ -145,7 +176,14 @@ export function SourceContentManager({ instanceId }: SourceContentManagerProps) 
   };
 
   const resetToDefault = () => {
+    const instanceInitial = getInitialDashboardContentForInstance(instanceId, defaultDashboardContent);
+    setStore(instanceInitial ?? defaultDashboardContent);
+  };
+
+  const handleClearAll = () => {
+    clearAllDashboardContent();
     setStore(defaultDashboardContent);
+    setShowClearConfirm(false);
   };
 
   return (
@@ -177,6 +215,15 @@ export function SourceContentManager({ instanceId }: SourceContentManagerProps) 
           <Button variant="outline" size="sm" onClick={resetToDefault} className="rounded-xl">
             <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
             Reset default
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowClearConfirm(true)}
+            className="rounded-xl border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
+          >
+            <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+            Clear all data
           </Button>
         </div>
       </div>
@@ -276,55 +323,77 @@ export function SourceContentManager({ instanceId }: SourceContentManagerProps) 
 
       {manageView === "data" && (
         <>
-      <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-4">
-        {SECTIONS.map(({ id, label, icon: Icon }) => (
+      {/* ── 3 Parent Tabs ──────────────────────────────────────────── */}
+      <div className="flex gap-2 p-1.5 rounded-2xl bg-slate-100 border border-slate-200/80 mb-4">
+        {PARENT_TABS.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
-            onClick={() => setActiveSection(id)}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
-              activeSection === id
-                ? "bg-gradient-to-r from-violet-500 to-cyan-500 text-white shadow-md"
-                : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
+            type="button"
+            onClick={() => setActiveParentTab(id)}
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+              activeParentTab === id
+                ? "bg-white text-violet-700 shadow-md border border-violet-200/50"
+                : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
             }`}
           >
             <Icon className="w-4 h-4" />
             {label}
-            <ChevronDown className={`w-3.5 h-3.5 opacity-70 ${activeSection === id ? "rotate-180" : ""}`} />
           </button>
         ))}
       </div>
 
-      {activeSection === "stats" && (
-        <StatsSection
-          items={store.statsOverview}
-          onUpdate={(items) => updateStore((p) => ({ ...p, statsOverview: items }))}
-        />
-      )}
-      {activeSection === "actions" && (
-        <ActionsSection
-          items={store.priorityActions}
-          onUpdate={(items) => updateStore((p) => ({ ...p, priorityActions: items }))}
-        />
-      )}
-      {activeSection === "outlets" && (
-        <OutletsSection
-          items={store.outletSatisfaction}
-          onUpdate={(items) => updateStore((p) => ({ ...p, outletSatisfaction: items }))}
-        />
-      )}
-      {activeSection === "risks" && (
-        <RisksSection
-          items={store.risks}
-          onUpdate={(items) => updateStore((p) => ({ ...p, risks: items }))}
-        />
-      )}
-      {activeSection === "opportunities" && (
-        <OpportunitiesSection
-          items={store.opportunities}
-          onUpdate={(items) => updateStore((p) => ({ ...p, opportunities: items }))}
-        />
-      )}
-      {activeSection === "competitive" && (
+      {/* ── Brand Analysis ─────────────────────────────────────────── */}
+      {activeParentTab === "brand" && (
+        <>
+          <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-4">
+            {BRAND_SECTIONS.map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                onClick={() => setActiveBrandSection(id)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                  activeBrandSection === id
+                    ? "bg-gradient-to-r from-violet-500 to-cyan-500 text-white shadow-md"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                {label}
+                <ChevronDown className={`w-3.5 h-3.5 opacity-70 ${activeBrandSection === id ? "rotate-180" : ""}`} />
+              </button>
+            ))}
+          </div>
+
+          {activeBrandSection === "stats" && (
+            <StatsSection
+              items={store.statsOverview}
+              onUpdate={(items) => updateStore((p) => ({ ...p, statsOverview: items }))}
+            />
+          )}
+          {activeBrandSection === "actions" && (
+            <ActionsSection
+              items={store.priorityActions}
+              onUpdate={(items) => updateStore((p) => ({ ...p, priorityActions: items }))}
+            />
+          )}
+          {activeBrandSection === "outlets" && (
+            <OutletsSection
+              items={store.outletSatisfaction}
+              onUpdate={(items) => updateStore((p) => ({ ...p, outletSatisfaction: items }))}
+            />
+          )}
+          {activeBrandSection === "risks" && (
+            <RisksSection
+              items={store.risks}
+              onUpdate={(items) => updateStore((p) => ({ ...p, risks: items }))}
+            />
+          )}
+          {activeBrandSection === "opportunities" && (
+            <OpportunitiesSection
+              items={store.opportunities}
+              onUpdate={(items) => updateStore((p) => ({ ...p, opportunities: items }))}
+            />
+          )}
+          {activeBrandSection === "competitive" && (
         <div className="space-y-4">
           <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-3">
             <button onClick={() => setCompetitiveSubTab("issues")} className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${competitiveSubTab === "issues" ? "bg-gradient-to-r from-violet-500 to-cyan-500 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>Competitive Issues</button>
@@ -358,17 +427,66 @@ export function SourceContentManager({ instanceId }: SourceContentManagerProps) 
             <ShareOfVoiceEditor items={store.competitiveShareOfVoice ?? []} onUpdate={(v) => updateStore((p) => ({ ...p, competitiveShareOfVoice: v }))} brandLabels={store.competitiveBrandLabels} />
           )}
         </div>
+          )}
+          {activeBrandSection === "whats-happening" && (
+            <WhatsHappeningSection
+              store={store}
+              updateStore={updateStore}
+              activeSubTab={whatsHappeningSubTab}
+              onSubTabChange={setWhatsHappeningSubTab}
+            />
+          )}
+        </>
       )}
-      {activeSection === "whats-happening" && (
-        <WhatsHappeningSection
+
+      {/* ── Campaign Analysis ──────────────────────────────────────── */}
+      {activeParentTab === "campaign" && (
+        <CampaignSection
           store={store}
           updateStore={updateStore}
-          activeSubTab={whatsHappeningSubTab}
-          onSubTabChange={setWhatsHappeningSubTab}
+          activeSubTab={campaignSubTab}
+          onSubTabChange={setCampaignSubTab}
+        />
+      )}
+
+      {/* ── Outlet Analysis ────────────────────────────────────────── */}
+      {activeParentTab === "outlet-analysis" && (
+        <OutletAnalysisSection
+          store={store}
+          updateStore={updateStore}
+          activeSubTab={outletAnalysisSubTab}
+          onSubTabChange={setOutletAnalysisSubTab}
         />
       )}
         </>
       )}
+
+      {/* ── Konfirmasi Clear All ─────────────────────────────────── */}
+      <Dialog open={showClearConfirm} onOpenChange={setShowClearConfirm}>
+        <DialogContent className="rounded-2xl max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <Trash2 className="w-5 h-5" />
+              Hapus Semua Data?
+            </DialogTitle>
+            <DialogDescription className="text-slate-600 pt-1">
+              Tindakan ini akan menghapus <strong>seluruh data semua instance</strong> yang tersimpan di browser (localStorage). Data tidak dapat dipulihkan setelah dihapus.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 pt-2">
+            <Button variant="outline" onClick={() => setShowClearConfirm(false)} className="rounded-xl">
+              Batal
+            </Button>
+            <Button
+              onClick={handleClearAll}
+              className="rounded-xl bg-red-500 hover:bg-red-600 text-white"
+            >
+              <Trash2 className="w-4 h-4 mr-1.5" />
+              Ya, Hapus Semua
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -2779,6 +2897,1375 @@ function ShareOfVoiceEditor({ items, onUpdate, brandLabels }: { items: ShareOfVo
           </DialogContent>
         </Dialog>
       )}
+    </div>
+  );
+}
+
+// ─── Campaign Section ──────────────────────────────────────────────────────
+
+type CampaignSubTab = "stats" | "performance" | "channels" | "competitors" | "recommendations" | "replyTopics" | "keyEvents" | "postEvents";
+
+function CampaignSection({
+  store,
+  updateStore,
+  activeSubTab,
+  onSubTabChange,
+}: {
+  store: DashboardContentStore;
+  updateStore: (fn: (p: DashboardContentStore) => DashboardContentStore) => void;
+  activeSubTab: CampaignSubTab;
+  onSubTabChange: (t: CampaignSubTab) => void;
+}) {
+  const subTabs: { id: CampaignSubTab; label: string }[] = [
+    { id: "stats",           label: "KPI Stats" },
+    { id: "performance",     label: "Campaigns" },
+    { id: "channels",        label: "Channels" },
+    { id: "competitors",     label: "Competitors" },
+    { id: "recommendations", label: "Recommendations" },
+    { id: "replyTopics",     label: "Reply Topics" },
+    { id: "keyEvents",       label: "Key Events" },
+    { id: "postEvents",      label: "Post Events" },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-3">
+        {subTabs.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => onSubTabChange(t.id)}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${activeSubTab === t.id ? "bg-gradient-to-r from-violet-500 to-cyan-500 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {activeSubTab === "stats" && (
+        <CampaignStatsSection
+          items={store.campaignStats ?? []}
+          onUpdate={(v) => updateStore((p) => ({ ...p, campaignStats: v }))}
+        />
+      )}
+      {activeSubTab === "performance" && (
+        <CampaignPerformanceSection
+          items={store.campaignPerformance ?? []}
+          onUpdate={(v) => updateStore((p) => ({ ...p, campaignPerformance: v }))}
+        />
+      )}
+      {activeSubTab === "channels" && (
+        <CampaignChannelsSection
+          items={store.campaignChannels ?? []}
+          onUpdate={(v) => updateStore((p) => ({ ...p, campaignChannels: v }))}
+        />
+      )}
+      {activeSubTab === "competitors" && (
+        <CampaignCompetitorsSection
+          items={store.campaignCompetitors ?? []}
+          onUpdate={(v) => updateStore((p) => ({ ...p, campaignCompetitors: v }))}
+        />
+      )}
+      {activeSubTab === "recommendations" && (
+        <CampaignRecommendationsSection
+          items={store.campaignRecommendations ?? []}
+          onUpdate={(v) => updateStore((p) => ({ ...p, campaignRecommendations: v }))}
+        />
+      )}
+      {activeSubTab === "replyTopics" && (
+        <CampaignReplyTopicsSection
+          items={store.campaignReplyTopics ?? []}
+          overall={store.campaignReplySentiment ?? { positive: 74, neutral: 16, negative: 10 }}
+          onUpdateItems={(v) => updateStore((p) => ({ ...p, campaignReplyTopics: v }))}
+          onUpdateOverall={(v) => updateStore((p) => ({ ...p, campaignReplySentiment: v }))}
+        />
+      )}
+      {activeSubTab === "keyEvents" && (
+        <CampaignKeyEventsSection
+          items={store.campaignKeyEvents ?? []}
+          onUpdate={(v) => updateStore((p) => ({ ...p, campaignKeyEvents: v }))}
+        />
+      )}
+      {activeSubTab === "postEvents" && (
+        <CampaignPostEventsSection
+          items={store.campaignPostPublishEvents ?? []}
+          onUpdate={(v) => updateStore((p) => ({ ...p, campaignPostPublishEvents: v }))}
+        />
+      )}
+    </div>
+  );
+}
+
+function CampaignStatsSection({ items, onUpdate }: { items: CampaignStatItem[]; onUpdate: (v: CampaignStatItem[]) => void }) {
+  const [editing, setEditing] = useState<CampaignStatItem | null>(null);
+  const [adding, setAdding] = useState(false);
+  const blank: Omit<CampaignStatItem, "id"> = { label: "", value: "", change: "", positive: true, description: "", icon: "Heart" };
+  const [form, setForm] = useState<Omit<CampaignStatItem, "id">>(blank);
+
+  const openEdit = (item: CampaignStatItem) => { setEditing({ ...item }); setAdding(false); };
+  const openAdd = () => { setForm(blank); setAdding(true); setEditing(null); };
+  const close = () => { setEditing(null); setAdding(false); };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button onClick={openAdd} className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-500 hover:opacity-90"><Plus className="w-4 h-4 mr-2" />Add stat</Button>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {items.map((item) => (
+          <Card key={item.id} className="rounded-2xl border-slate-200 overflow-hidden hover:border-violet-300 transition-colors">
+            <CardHeader className="pb-2">
+              <div className="flex items-start justify-between gap-2">
+                <CardTitle className="text-base">{item.label}</CardTitle>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={() => openEdit(item)}><Pencil className="w-3.5 h-3.5 text-slate-500" /></Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-red-500 hover:text-red-600" onClick={() => onUpdate(items.filter((i) => i.id !== item.id))}><Trash2 className="w-3.5 h-3.5" /></Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <p className="text-2xl font-bold text-slate-900 mb-1">{item.value}</p>
+              <p className="text-xs text-slate-500">{item.change} · {item.description}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      {(editing || adding) && (
+        <Dialog open onOpenChange={(o) => !o && close()}>
+          <DialogContent className="rounded-2xl sm:max-w-md">
+            <DialogHeader><DialogTitle>{adding ? "Tambah stat" : "Edit stat"}</DialogTitle></DialogHeader>
+            <div className="space-y-3">
+              {[
+                { key: "label", label: "Label", placeholder: "Total Likes" },
+                { key: "value", label: "Value", placeholder: "186K" },
+                { key: "change", label: "Change", placeholder: "+22%" },
+                { key: "description", label: "Description", placeholder: "Total likes..." },
+                { key: "icon", label: "Icon (Heart/Share2/MessageCircle)", placeholder: "Heart" },
+              ].map(({ key, label: lbl, placeholder }) => (
+                <div key={key}>
+                  <label className="text-xs font-medium text-slate-600 mb-1 block">{lbl}</label>
+                  <Input
+                    placeholder={placeholder}
+                    value={adding ? String((form as any)[key] ?? "") : String((editing as any)?.[key] ?? "")}
+                    onChange={(e) => {
+                      if (adding) setForm((p) => ({ ...p, [key]: e.target.value }));
+                      else setEditing((p) => p ? { ...p, [key]: e.target.value } : p);
+                    }}
+                    className="rounded-xl"
+                  />
+                </div>
+              ))}
+              <div className="flex items-center gap-3">
+                <label className="text-xs font-medium text-slate-600">Positive</label>
+                <Switch
+                  checked={adding ? form.positive : (editing?.positive ?? true)}
+                  onCheckedChange={(v) => {
+                    if (adding) setForm((p) => ({ ...p, positive: v }));
+                    else setEditing((p) => p ? { ...p, positive: v } : p);
+                  }}
+                  className="data-[state=checked]:bg-violet-500"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={close} className="rounded-xl">Batal</Button>
+              <Button onClick={() => {
+                if (adding) { onUpdate([...items, { ...form, id: generateId() }]); close(); }
+                else if (editing) { onUpdate(items.map((i) => i.id === editing.id ? editing : i)); close(); }
+              }} className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-500">Simpan</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}
+
+function CampaignPerformanceSection({ items, onUpdate }: { items: CampaignItem[]; onUpdate: (v: CampaignItem[]) => void }) {
+  const [editing, setEditing] = useState<CampaignItem | null>(null);
+  const [adding, setAdding] = useState(false);
+  const blank: Omit<CampaignItem, "id"> = { name: "", platform: "", likes: 0, shares: 0, replies: 0, status: "active", sentiment: 0.7 };
+  const [form, setForm] = useState<Omit<CampaignItem, "id">>(blank);
+
+  const close = () => { setEditing(null); setAdding(false); };
+  const isEditing = editing !== null;
+  const cur = isEditing ? editing : form;
+  const setCur = isEditing
+    ? (fn: (p: CampaignItem) => CampaignItem) => setEditing((p) => p ? fn(p) : p)
+    : (fn: (p: Omit<CampaignItem, "id">) => Omit<CampaignItem, "id">) => setForm(fn);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button onClick={() => { setForm(blank); setAdding(true); setEditing(null); }} className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-500 hover:opacity-90"><Plus className="w-4 h-4 mr-2" />Add campaign</Button>
+      </div>
+      <div className="rounded-2xl border border-slate-200 overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 border-b border-slate-200">
+            <tr>
+              <th className="px-4 py-3 text-left font-semibold text-slate-700">Campaign</th>
+              <th className="px-4 py-3 text-left font-semibold text-slate-700">Platform</th>
+              <th className="px-4 py-3 text-right font-semibold text-slate-700">Likes</th>
+              <th className="px-4 py-3 text-right font-semibold text-slate-700">Shares</th>
+              <th className="px-4 py-3 text-right font-semibold text-slate-700">Replies</th>
+              <th className="px-4 py-3 text-center font-semibold text-slate-700">Status</th>
+              <th className="px-4 py-3 text-right font-semibold text-slate-700">Aksi</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {items.map((c) => (
+              <tr key={c.id} className="hover:bg-slate-50">
+                <td className="px-4 py-3 font-medium text-slate-800">{c.name}</td>
+                <td className="px-4 py-3 text-slate-600">{c.platform}</td>
+                <td className="px-4 py-3 text-right">{c.likes.toLocaleString()}</td>
+                <td className="px-4 py-3 text-right">{c.shares.toLocaleString()}</td>
+                <td className="px-4 py-3 text-right">{c.replies.toLocaleString()}</td>
+                <td className="px-4 py-3 text-center">
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${c.status === "active" ? "bg-emerald-100 text-emerald-700" : c.status === "paused" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-600"}`}>{c.status}</span>
+                </td>
+                <td className="px-4 py-3 text-right">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditing({ ...c }); setAdding(false); }}><Pencil className="w-3.5 h-3.5" /></Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => onUpdate(items.filter((i) => i.id !== c.id))}><Trash2 className="w-3.5 h-3.5" /></Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {(editing || adding) && (
+        <Dialog open onOpenChange={(o) => !o && close()}>
+          <DialogContent className="rounded-2xl sm:max-w-md">
+            <DialogHeader><DialogTitle>{adding ? "Tambah campaign" : "Edit campaign"}</DialogTitle></DialogHeader>
+            <div className="space-y-3">
+              {[
+                { key: "name", label: "Campaign Name", type: "text" },
+                { key: "platform", label: "Platform", type: "text" },
+                { key: "likes", label: "Likes", type: "number" },
+                { key: "shares", label: "Shares", type: "number" },
+                { key: "replies", label: "Replies", type: "number" },
+                { key: "sentiment", label: "Sentiment (0-1)", type: "number" },
+              ].map(({ key, label: lbl, type }) => (
+                <div key={key}>
+                  <label className="text-xs font-medium text-slate-600 mb-1 block">{lbl}</label>
+                  <Input type={type} step={key === "sentiment" ? 0.01 : 1}
+                    value={String((cur as any)[key] ?? "")}
+                    onChange={(e) => (setCur as any)((p: any) => ({ ...p, [key]: type === "number" ? Number(e.target.value) || 0 : e.target.value }))}
+                    className="rounded-xl"
+                  />
+                </div>
+              ))}
+              <div>
+                <label className="text-xs font-medium text-slate-600 mb-1 block">Status</label>
+                <select value={cur.status} onChange={(e) => (setCur as any)((p: any) => ({ ...p, status: e.target.value }))} className="w-full h-9 rounded-xl border border-slate-200 px-3 text-sm">
+                  <option value="active">Active</option>
+                  <option value="paused">Paused</option>
+                  <option value="completed">Completed</option>
+                </select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={close} className="rounded-xl">Batal</Button>
+              <Button onClick={() => {
+                if (adding) { onUpdate([...items, { ...(form as Omit<CampaignItem, "id">), id: generateId() }]); close(); }
+                else if (editing) { onUpdate(items.map((i) => i.id === editing.id ? editing : i)); close(); }
+              }} className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-500">Simpan</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </div>
+  );
+}
+
+function CampaignChannelsSection({ items, onUpdate }: { items: CampaignChannelItem[]; onUpdate: (v: CampaignChannelItem[]) => void }) {
+  const [editing, setEditing] = useState<CampaignChannelItem | null>(null);
+  const [adding, setAdding] = useState(false);
+  const blank: Omit<CampaignChannelItem, "id"> = { name: "", likes: 0, replies: 0, shares: 0, posts: 0, icon: "", color: "from-slate-400 to-slate-600" };
+  const [form, setForm] = useState<Omit<CampaignChannelItem, "id">>(blank);
+  const close = () => { setEditing(null); setAdding(false); };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button onClick={() => { setForm(blank); setAdding(true); setEditing(null); }} className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-500 hover:opacity-90"><Plus className="w-4 h-4 mr-2" />Add channel</Button>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {items.map((c) => (
+          <Card key={c.id} className="rounded-2xl border-slate-200 overflow-hidden">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${c.color} flex items-center justify-center text-white text-xs font-bold`}>{c.icon}</div>
+                  <span className="font-semibold text-slate-800">{c.name}</span>
+                </div>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditing({ ...c }); setAdding(false); }}><Pencil className="w-3 h-3" /></Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500" onClick={() => onUpdate(items.filter((i) => i.id !== c.id))}><Trash2 className="w-3 h-3" /></Button>
+                </div>
+              </div>
+              <p className="text-xs text-slate-500">{c.posts} posts · {c.likes.toLocaleString()} likes</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      {(editing || adding) && (() => {
+        const cur = editing ?? form;
+        const setCur = editing
+          ? (fn: (p: CampaignChannelItem) => CampaignChannelItem) => setEditing((p) => p ? fn(p) : p)
+          : (fn: (p: Omit<CampaignChannelItem, "id">) => Omit<CampaignChannelItem, "id">) => setForm(fn);
+        return (
+          <Dialog open onOpenChange={(o) => !o && close()}>
+            <DialogContent className="rounded-2xl sm:max-w-md">
+              <DialogHeader><DialogTitle>{adding ? "Tambah channel" : "Edit channel"}</DialogTitle></DialogHeader>
+              <div className="space-y-3">
+                {[
+                  { key: "name", label: "Channel Name", type: "text" },
+                  { key: "icon", label: "Icon Label (e.g. IG, TK, X)", type: "text" },
+                  { key: "color", label: "Gradient CSS (e.g. from-pink-400 to-rose-500)", type: "text" },
+                  { key: "posts", label: "Posts", type: "number" },
+                  { key: "likes", label: "Likes", type: "number" },
+                  { key: "replies", label: "Replies", type: "number" },
+                  { key: "shares", label: "Shares", type: "number" },
+                ].map(({ key, label: lbl, type }) => (
+                  <div key={key}>
+                    <label className="text-xs font-medium text-slate-600 mb-1 block">{lbl}</label>
+                    <Input type={type}
+                      value={String((cur as any)[key] ?? "")}
+                      onChange={(e) => (setCur as any)((p: any) => ({ ...p, [key]: type === "number" ? Number(e.target.value) || 0 : e.target.value }))}
+                      className="rounded-xl"
+                    />
+                  </div>
+                ))}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={close} className="rounded-xl">Batal</Button>
+                <Button onClick={() => {
+                  if (adding) { onUpdate([...items, { ...(form as Omit<CampaignChannelItem, "id">), id: generateId() }]); close(); }
+                  else if (editing) { onUpdate(items.map((i) => i.id === editing.id ? editing : i)); close(); }
+                }} className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-500">Simpan</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
+    </div>
+  );
+}
+
+function CampaignCompetitorsSection({ items, onUpdate }: { items: CampaignCompetitorItem[]; onUpdate: (v: CampaignCompetitorItem[]) => void }) {
+  const [editIdx, setEditIdx] = useState<number | null>(null);
+  const [adding, setAdding] = useState(false);
+  const blank: Omit<CampaignCompetitorItem, "id"> = { brand: "", posts: 0, likes: 0, replies: 0, shares: 0, sentiment: 0.7 };
+  const [form, setForm] = useState<Omit<CampaignCompetitorItem, "id">>(blank);
+  const close = () => { setEditIdx(null); setAdding(false); };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button onClick={() => { setForm(blank); setAdding(true); setEditIdx(null); }} className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-500 hover:opacity-90"><Plus className="w-4 h-4 mr-2" />Add competitor</Button>
+      </div>
+      <div className="rounded-2xl border border-slate-200 overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 border-b border-slate-200">
+            <tr>
+              <th className="px-4 py-3 text-left font-semibold text-slate-700">Brand</th>
+              <th className="px-4 py-3 text-right font-semibold text-slate-700">Posts</th>
+              <th className="px-4 py-3 text-right font-semibold text-slate-700">Likes</th>
+              <th className="px-4 py-3 text-right font-semibold text-slate-700">Replies</th>
+              <th className="px-4 py-3 text-right font-semibold text-slate-700">Shares</th>
+              <th className="px-4 py-3 text-right font-semibold text-slate-700">Sentiment</th>
+              <th className="px-4 py-3 text-right font-semibold text-slate-700">Aksi</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {items.map((c, idx) => (
+              <tr key={c.id} className="hover:bg-slate-50">
+                <td className="px-4 py-3 font-medium">{c.brand}</td>
+                <td className="px-4 py-3 text-right">{c.posts}</td>
+                <td className="px-4 py-3 text-right">{c.likes.toLocaleString()}</td>
+                <td className="px-4 py-3 text-right">{c.replies.toLocaleString()}</td>
+                <td className="px-4 py-3 text-right">{c.shares.toLocaleString()}</td>
+                <td className="px-4 py-3 text-right">{(c.sentiment * 100).toFixed(0)}%</td>
+                <td className="px-4 py-3 text-right">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditIdx(idx)}><Pencil className="w-3.5 h-3.5" /></Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500" onClick={() => onUpdate(items.filter((_, i) => i !== idx))}><Trash2 className="w-3.5 h-3.5" /></Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {(editIdx !== null || adding) && (() => {
+        const cur = editIdx !== null ? items[editIdx] : form;
+        const setCur = editIdx !== null
+          ? (fn: (p: CampaignCompetitorItem) => CampaignCompetitorItem) => onUpdate(items.map((item, i) => i === editIdx ? fn(item) : item))
+          : (fn: (p: Omit<CampaignCompetitorItem, "id">) => Omit<CampaignCompetitorItem, "id">) => setForm(fn);
+        return (
+          <Dialog open onOpenChange={(o) => !o && close()}>
+            <DialogContent className="rounded-2xl sm:max-w-md">
+              <DialogHeader><DialogTitle>{adding ? "Tambah competitor" : "Edit competitor"}</DialogTitle></DialogHeader>
+              <div className="space-y-3">
+                {[
+                  { key: "brand", label: "Brand Name", type: "text" },
+                  { key: "posts", label: "Posts", type: "number" },
+                  { key: "likes", label: "Likes", type: "number" },
+                  { key: "replies", label: "Replies", type: "number" },
+                  { key: "shares", label: "Shares", type: "number" },
+                  { key: "sentiment", label: "Sentiment (0-1)", type: "number" },
+                ].map(({ key, label: lbl, type }) => (
+                  <div key={key}>
+                    <label className="text-xs font-medium text-slate-600 mb-1 block">{lbl}</label>
+                    <Input type={type} step={key === "sentiment" ? 0.01 : 1}
+                      value={String((cur as any)[key] ?? "")}
+                      onChange={(e) => (setCur as any)((p: any) => ({ ...p, [key]: type === "number" ? Number(e.target.value) || 0 : e.target.value }))}
+                      className="rounded-xl"
+                    />
+                  </div>
+                ))}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={close} className="rounded-xl">Batal</Button>
+                <Button onClick={() => {
+                  if (adding) { onUpdate([...items, { ...(form as Omit<CampaignCompetitorItem, "id">), id: generateId() }]); close(); }
+                  else { close(); }
+                }} className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-500">Simpan</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
+    </div>
+  );
+}
+
+function CampaignRecommendationsSection({ items, onUpdate }: { items: CampaignRecommendationItem[]; onUpdate: (v: CampaignRecommendationItem[]) => void }) {
+  const [editing, setEditing] = useState<CampaignRecommendationItem | null>(null);
+  const [adding, setAdding] = useState(false);
+  const blank: Omit<CampaignRecommendationItem, "id"> = { priority: "medium", title: "", detail: "", impact: "" };
+  const [form, setForm] = useState<Omit<CampaignRecommendationItem, "id">>(blank);
+  const close = () => { setEditing(null); setAdding(false); };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button onClick={() => { setForm(blank); setAdding(true); setEditing(null); }} className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-500 hover:opacity-90"><Plus className="w-4 h-4 mr-2" />Add recommendation</Button>
+      </div>
+      <div className="space-y-3">
+        {items.map((rec) => (
+          <Card key={rec.id} className="rounded-2xl border-slate-200">
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${rec.priority === "high" ? "bg-red-100 text-red-700" : rec.priority === "medium" ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>{rec.priority}</span>
+                    <span className="font-semibold text-slate-800 text-sm">{rec.title}</span>
+                  </div>
+                  <p className="text-xs text-slate-500 mb-1">{rec.detail}</p>
+                  <span className="text-xs text-violet-600 font-medium">{rec.impact}</span>
+                </div>
+                <div className="flex gap-1 shrink-0">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditing({ ...rec }); setAdding(false); }}><Pencil className="w-3 h-3" /></Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500" onClick={() => onUpdate(items.filter((i) => i.id !== rec.id))}><Trash2 className="w-3 h-3" /></Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      {(editing || adding) && (() => {
+        const cur = editing ?? form;
+        const setCur = editing
+          ? (fn: (p: CampaignRecommendationItem) => CampaignRecommendationItem) => setEditing((p) => p ? fn(p) : p)
+          : (fn: (p: Omit<CampaignRecommendationItem, "id">) => Omit<CampaignRecommendationItem, "id">) => setForm(fn);
+        return (
+          <Dialog open onOpenChange={(o) => !o && close()}>
+            <DialogContent className="rounded-2xl sm:max-w-md">
+              <DialogHeader><DialogTitle>{adding ? "Tambah rekomendasi" : "Edit rekomendasi"}</DialogTitle></DialogHeader>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-medium text-slate-600 mb-1 block">Priority</label>
+                  <select value={cur.priority} onChange={(e) => (setCur as any)((p: any) => ({ ...p, priority: e.target.value }))} className="w-full h-9 rounded-xl border border-slate-200 px-3 text-sm">
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                  </select>
+                </div>
+                {[
+                  { key: "title", label: "Title" },
+                  { key: "detail", label: "Detail" },
+                  { key: "impact", label: "Impact" },
+                ].map(({ key, label: lbl }) => (
+                  <div key={key}>
+                    <label className="text-xs font-medium text-slate-600 mb-1 block">{lbl}</label>
+                    <Input value={String((cur as any)[key] ?? "")} onChange={(e) => (setCur as any)((p: any) => ({ ...p, [key]: e.target.value }))} className="rounded-xl" />
+                  </div>
+                ))}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={close} className="rounded-xl">Batal</Button>
+                <Button onClick={() => {
+                  if (adding) { onUpdate([...items, { ...(form as Omit<CampaignRecommendationItem, "id">), id: generateId() }]); close(); }
+                  else if (editing) { onUpdate(items.map((i) => i.id === editing.id ? editing : i)); close(); }
+                }} className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-500">Simpan</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
+    </div>
+  );
+}
+
+function CampaignReplyTopicsSection({
+  items, overall, onUpdateItems, onUpdateOverall,
+}: {
+  items: CampaignReplyTopicCluster[];
+  overall: { positive: number; neutral: number; negative: number };
+  onUpdateItems: (v: CampaignReplyTopicCluster[]) => void;
+  onUpdateOverall: (v: { positive: number; neutral: number; negative: number }) => void;
+}) {
+  const [editing, setEditing] = useState<CampaignReplyTopicCluster | null>(null);
+  const [adding, setAdding] = useState(false);
+  const blank: Omit<CampaignReplyTopicCluster, "id"> = { topic: "", totalReplies: 0, positive: 70, neutral: 20, negative: 10, topComments: [] };
+  const [form, setForm] = useState<Omit<CampaignReplyTopicCluster, "id">>(blank);
+  const close = () => { setEditing(null); setAdding(false); };
+
+  return (
+    <div className="space-y-5">
+      <Card className="rounded-2xl border-slate-200">
+        <CardHeader className="pb-2"><CardTitle className="text-sm">Overall Sentiment</CardTitle></CardHeader>
+        <CardContent className="grid grid-cols-3 gap-3">
+          {[
+            { key: "positive", label: "Positive %" },
+            { key: "neutral", label: "Neutral %" },
+            { key: "negative", label: "Negative %" },
+          ].map(({ key, label: lbl }) => (
+            <div key={key}>
+              <label className="text-xs font-medium text-slate-600 mb-1 block">{lbl}</label>
+              <Input type="number" min={0} max={100}
+                value={(overall as any)[key]}
+                onChange={(e) => onUpdateOverall({ ...overall, [key]: Number(e.target.value) || 0 })}
+                className="rounded-xl"
+              />
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+      <div className="flex justify-end">
+        <Button onClick={() => { setForm(blank); setAdding(true); setEditing(null); }} className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-500 hover:opacity-90"><Plus className="w-4 h-4 mr-2" />Add topic</Button>
+      </div>
+      <div className="space-y-3">
+        {items.map((t) => (
+          <Card key={t.id} className="rounded-2xl border-slate-200">
+            <CardContent className="p-4 flex items-center justify-between gap-3">
+              <div>
+                <p className="font-semibold text-slate-800 text-sm">{t.topic}</p>
+                <p className="text-xs text-slate-500">{t.totalReplies.toLocaleString()} replies · {t.positive}% pos · {t.negative}% neg</p>
+              </div>
+              <div className="flex gap-1 shrink-0">
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditing({ ...t, topComments: [...t.topComments] }); setAdding(false); }}><Pencil className="w-3 h-3" /></Button>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500" onClick={() => onUpdateItems(items.filter((i) => i.id !== t.id))}><Trash2 className="w-3 h-3" /></Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      {(editing || adding) && (() => {
+        const cur = editing ?? form;
+        const setCur = editing
+          ? (fn: (p: CampaignReplyTopicCluster) => CampaignReplyTopicCluster) => setEditing((p) => p ? fn(p) : p)
+          : (fn: (p: Omit<CampaignReplyTopicCluster, "id">) => Omit<CampaignReplyTopicCluster, "id">) => setForm(fn);
+        return (
+          <Dialog open onOpenChange={(o) => !o && close()}>
+            <DialogContent className="rounded-2xl sm:max-w-lg">
+              <DialogHeader><DialogTitle>{adding ? "Tambah topic" : "Edit topic"}</DialogTitle></DialogHeader>
+              <div className="space-y-3">
+                {[
+                  { key: "topic", label: "Topic", type: "text" },
+                  { key: "totalReplies", label: "Total Replies", type: "number" },
+                  { key: "positive", label: "Positive %", type: "number" },
+                  { key: "neutral", label: "Neutral %", type: "number" },
+                  { key: "negative", label: "Negative %", type: "number" },
+                ].map(({ key, label: lbl, type }) => (
+                  <div key={key}>
+                    <label className="text-xs font-medium text-slate-600 mb-1 block">{lbl}</label>
+                    <Input type={type} value={String((cur as any)[key] ?? "")} onChange={(e) => (setCur as any)((p: any) => ({ ...p, [key]: type === "number" ? Number(e.target.value) || 0 : e.target.value }))} className="rounded-xl" />
+                  </div>
+                ))}
+                <div>
+                  <label className="text-xs font-medium text-slate-600 mb-1 block">Top Comments (satu per baris)</label>
+                  <textarea
+                    rows={4}
+                    value={(cur.topComments ?? []).join("\n")}
+                    onChange={(e) => (setCur as any)((p: any) => ({ ...p, topComments: e.target.value.split("\n") }))}
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-violet-300"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={close} className="rounded-xl">Batal</Button>
+                <Button onClick={() => {
+                  if (adding) { onUpdateItems([...items, { ...(form as Omit<CampaignReplyTopicCluster, "id">), id: generateId() }]); close(); }
+                  else if (editing) { onUpdateItems(items.map((i) => i.id === editing.id ? editing : i)); close(); }
+                }} className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-500">Simpan</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
+    </div>
+  );
+}
+
+function CampaignKeyEventsSection({ items, onUpdate }: { items: CampaignKeyEvent[]; onUpdate: (v: CampaignKeyEvent[]) => void }) {
+  const [editing, setEditing] = useState<CampaignKeyEvent | null>(null);
+  const [adding, setAdding] = useState(false);
+  const blank: Omit<CampaignKeyEvent, "id"> = { date: "", title: "", type: "spike", insight: "" };
+  const [form, setForm] = useState<Omit<CampaignKeyEvent, "id">>(blank);
+  const close = () => { setEditing(null); setAdding(false); };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button onClick={() => { setForm(blank); setAdding(true); setEditing(null); }} className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-500 hover:opacity-90"><Plus className="w-4 h-4 mr-2" />Add event</Button>
+      </div>
+      <div className="space-y-3">
+        {items.map((e) => (
+          <Card key={e.id} className="rounded-2xl border-slate-200">
+            <CardContent className="p-4 flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${e.type === "spike" ? "bg-amber-100 text-amber-700" : e.type === "pivot" ? "bg-violet-100 text-violet-700" : "bg-red-100 text-red-700"}`}>{e.type}</span>
+                  <span className="text-xs text-slate-400">{e.date}</span>
+                </div>
+                <p className="font-semibold text-slate-800 text-sm">{e.title}</p>
+                <p className="text-xs text-slate-500 mt-1 line-clamp-2">{e.insight}</p>
+              </div>
+              <div className="flex gap-1 shrink-0">
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditing({ ...e }); setAdding(false); }}><Pencil className="w-3 h-3" /></Button>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500" onClick={() => onUpdate(items.filter((i) => i.id !== e.id))}><Trash2 className="w-3 h-3" /></Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      {(editing || adding) && (() => {
+        const cur = editing ?? form;
+        const setCur = editing
+          ? (fn: (p: CampaignKeyEvent) => CampaignKeyEvent) => setEditing((p) => p ? fn(p) : p)
+          : (fn: (p: Omit<CampaignKeyEvent, "id">) => Omit<CampaignKeyEvent, "id">) => setForm(fn);
+        return (
+          <Dialog open onOpenChange={(o) => !o && close()}>
+            <DialogContent className="rounded-2xl sm:max-w-lg">
+              <DialogHeader><DialogTitle>{adding ? "Tambah key event" : "Edit key event"}</DialogTitle></DialogHeader>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-medium text-slate-600 mb-1 block">Type</label>
+                  <select value={cur.type} onChange={(e) => (setCur as any)((p: any) => ({ ...p, type: e.target.value }))} className="w-full h-9 rounded-xl border border-slate-200 px-3 text-sm">
+                    <option value="spike">Spike</option>
+                    <option value="pivot">Pivot</option>
+                    <option value="drop">Drop</option>
+                  </select>
+                </div>
+                {[
+                  { key: "date", label: "Date (e.g. Jan 15)" },
+                  { key: "title", label: "Title" },
+                  { key: "insight", label: "AI Insight" },
+                ].map(({ key, label: lbl }) => (
+                  <div key={key}>
+                    <label className="text-xs font-medium text-slate-600 mb-1 block">{lbl}</label>
+                    <Input value={String((cur as any)[key] ?? "")} onChange={(e) => (setCur as any)((p: any) => ({ ...p, [key]: e.target.value }))} className="rounded-xl" />
+                  </div>
+                ))}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={close} className="rounded-xl">Batal</Button>
+                <Button onClick={() => {
+                  if (adding) { onUpdate([...items, { ...(form as Omit<CampaignKeyEvent, "id">), id: generateId() }]); close(); }
+                  else if (editing) { onUpdate(items.map((i) => i.id === editing.id ? editing : i)); close(); }
+                }} className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-500">Simpan</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
+    </div>
+  );
+}
+
+function CampaignPostEventsSection({ items, onUpdate }: { items: CampaignPostPublishEvent[]; onUpdate: (v: CampaignPostPublishEvent[]) => void }) {
+  const [editing, setEditing] = useState<CampaignPostPublishEvent | null>(null);
+  const [adding, setAdding] = useState(false);
+  const blank: Omit<CampaignPostPublishEvent, "id"> = { date: "", label: "", type: "reel" };
+  const [form, setForm] = useState<Omit<CampaignPostPublishEvent, "id">>(blank);
+  const close = () => { setEditing(null); setAdding(false); };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button onClick={() => { setForm(blank); setAdding(true); setEditing(null); }} className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-500 hover:opacity-90"><Plus className="w-4 h-4 mr-2" />Add post event</Button>
+      </div>
+      <div className="rounded-2xl border border-slate-200 overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 border-b border-slate-200">
+            <tr>
+              <th className="px-4 py-3 text-left font-semibold text-slate-700">Date</th>
+              <th className="px-4 py-3 text-left font-semibold text-slate-700">Label</th>
+              <th className="px-4 py-3 text-left font-semibold text-slate-700">Type</th>
+              <th className="px-4 py-3 text-right font-semibold text-slate-700">Aksi</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {items.map((p) => (
+              <tr key={p.id} className="hover:bg-slate-50">
+                <td className="px-4 py-3 text-slate-600">{p.date}</td>
+                <td className="px-4 py-3 font-medium text-slate-800">{p.label}</td>
+                <td className="px-4 py-3"><span className="text-xs px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 font-medium">{p.type}</span></td>
+                <td className="px-4 py-3 text-right">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditing({ ...p }); setAdding(false); }}><Pencil className="w-3 h-3" /></Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500" onClick={() => onUpdate(items.filter((i) => i.id !== p.id))}><Trash2 className="w-3 h-3" /></Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {(editing || adding) && (() => {
+        const cur = editing ?? form;
+        const setCur = editing
+          ? (fn: (p: CampaignPostPublishEvent) => CampaignPostPublishEvent) => setEditing((p) => p ? fn(p) : p)
+          : (fn: (p: Omit<CampaignPostPublishEvent, "id">) => Omit<CampaignPostPublishEvent, "id">) => setForm(fn);
+        return (
+          <Dialog open onOpenChange={(o) => !o && close()}>
+            <DialogContent className="rounded-2xl sm:max-w-md">
+              <DialogHeader><DialogTitle>{adding ? "Tambah post event" : "Edit post event"}</DialogTitle></DialogHeader>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-medium text-slate-600 mb-1 block">Type</label>
+                  <select value={cur.type} onChange={(e) => (setCur as any)((p: any) => ({ ...p, type: e.target.value }))} className="w-full h-9 rounded-xl border border-slate-200 px-3 text-sm">
+                    <option value="reel">Reel</option>
+                    <option value="thread">Thread</option>
+                    <option value="carousel">Carousel</option>
+                    <option value="image">Image</option>
+                    <option value="short_video">Short Video</option>
+                    <option value="live_stream">Live Stream</option>
+                  </select>
+                </div>
+                {[
+                  { key: "date", label: "Date (e.g. Jan 8)" },
+                  { key: "label", label: "Label" },
+                ].map(({ key, label: lbl }) => (
+                  <div key={key}>
+                    <label className="text-xs font-medium text-slate-600 mb-1 block">{lbl}</label>
+                    <Input value={String((cur as any)[key] ?? "")} onChange={(e) => (setCur as any)((p: any) => ({ ...p, [key]: e.target.value }))} className="rounded-xl" />
+                  </div>
+                ))}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={close} className="rounded-xl">Batal</Button>
+                <Button onClick={() => {
+                  if (adding) { onUpdate([...items, { ...(form as Omit<CampaignPostPublishEvent, "id">), id: generateId() }]); close(); }
+                  else if (editing) { onUpdate(items.map((i) => i.id === editing.id ? editing : i)); close(); }
+                }} className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-500">Simpan</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
+    </div>
+  );
+}
+
+// ─── Outlet Analysis Section ────────────────────────────────────────────────
+
+type OutletAnalysisSubTab = "stats" | "priorityActions" | "mapData" | "sentimentByOutlet" | "topics" | "reviews";
+
+function OutletAnalysisSection({
+  store,
+  updateStore,
+  activeSubTab,
+  onSubTabChange,
+}: {
+  store: DashboardContentStore;
+  updateStore: (fn: (p: DashboardContentStore) => DashboardContentStore) => void;
+  activeSubTab: OutletAnalysisSubTab;
+  onSubTabChange: (t: OutletAnalysisSubTab) => void;
+}) {
+  const subTabs: { id: OutletAnalysisSubTab; label: string }[] = [
+    { id: "stats",             label: "KPI Stats" },
+    { id: "priorityActions",   label: "Priority Actions" },
+    { id: "mapData",           label: "Outlet Map Data" },
+    { id: "sentimentByOutlet", label: "Sentiment Per Outlet" },
+    { id: "topics",            label: "Topics" },
+    { id: "reviews",           label: "Recent Reviews" },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-3">
+        {subTabs.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => onSubTabChange(t.id)}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${activeSubTab === t.id ? "bg-gradient-to-r from-violet-500 to-cyan-500 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {activeSubTab === "stats" && (
+        <OutletStatsSection
+          items={store.outletStats ?? []}
+          onUpdate={(v) => updateStore((p) => ({ ...p, outletStats: v }))}
+        />
+      )}
+      {activeSubTab === "priorityActions" && (
+        <OutletPriorityActionsSection
+          items={store.outletPriorityActions ?? []}
+          onUpdate={(v) => updateStore((p) => ({ ...p, outletPriorityActions: v }))}
+        />
+      )}
+      {activeSubTab === "mapData" && (
+        <OutletMapDataSection
+          items={store.outletMapData ?? []}
+          onUpdate={(v) => updateStore((p) => ({ ...p, outletMapData: v }))}
+        />
+      )}
+      {activeSubTab === "sentimentByOutlet" && (
+        <OutletSentimentSection
+          overall={store.outletSentimentOverall ?? { positive: 62, neutral: 22, negative: 16 }}
+          byOutlet={store.outletSentimentByOutlet ?? []}
+          onUpdateOverall={(v) => updateStore((p) => ({ ...p, outletSentimentOverall: v }))}
+          onUpdateByOutlet={(v) => updateStore((p) => ({ ...p, outletSentimentByOutlet: v }))}
+        />
+      )}
+      {activeSubTab === "topics" && (
+        <OutletTopicsSection
+          items={store.outletTopics ?? []}
+          onUpdate={(v) => updateStore((p) => ({ ...p, outletTopics: v }))}
+        />
+      )}
+      {activeSubTab === "reviews" && (
+        <OutletReviewsSection
+          items={store.outletRecentReviews ?? []}
+          onUpdate={(v) => updateStore((p) => ({ ...p, outletRecentReviews: v }))}
+        />
+      )}
+    </div>
+  );
+}
+
+function OutletStatsSection({ items, onUpdate }: { items: OutletStatItem[]; onUpdate: (v: OutletStatItem[]) => void }) {
+  const [editing, setEditing] = useState<OutletStatItem | null>(null);
+  const [adding, setAdding] = useState(false);
+  const blank: Omit<OutletStatItem, "id"> = { label: "", value: "", change: "", positive: true, description: "", icon: "Store" };
+  const [form, setForm] = useState<Omit<OutletStatItem, "id">>(blank);
+  const close = () => { setEditing(null); setAdding(false); };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button onClick={() => { setForm(blank); setAdding(true); setEditing(null); }} className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-500 hover:opacity-90"><Plus className="w-4 h-4 mr-2" />Add stat</Button>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {items.map((item) => (
+          <Card key={item.id} className="rounded-2xl border-slate-200 overflow-hidden hover:border-violet-300 transition-colors">
+            <CardHeader className="pb-2">
+              <div className="flex items-start justify-between gap-2">
+                <CardTitle className="text-base">{item.label}</CardTitle>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={() => { setEditing({ ...item }); setAdding(false); }}><Pencil className="w-3.5 h-3.5 text-slate-500" /></Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-red-500" onClick={() => onUpdate(items.filter((i) => i.id !== item.id))}><Trash2 className="w-3.5 h-3.5" /></Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <p className="text-2xl font-bold text-slate-900 mb-1">{item.value}</p>
+              <p className="text-xs text-slate-500">{item.change} · {item.description}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      {(editing || adding) && (() => {
+        const cur = editing ?? form;
+        const setCur = editing
+          ? (fn: (p: OutletStatItem) => OutletStatItem) => setEditing((p) => p ? fn(p) : p)
+          : (fn: (p: Omit<OutletStatItem, "id">) => Omit<OutletStatItem, "id">) => setForm(fn);
+        return (
+          <Dialog open onOpenChange={(o) => !o && close()}>
+            <DialogContent className="rounded-2xl sm:max-w-md">
+              <DialogHeader><DialogTitle>{adding ? "Tambah stat" : "Edit stat"}</DialogTitle></DialogHeader>
+              <div className="space-y-3">
+                {[
+                  { key: "label", label: "Label" },
+                  { key: "value", label: "Value" },
+                  { key: "change", label: "Change" },
+                  { key: "description", label: "Description" },
+                  { key: "icon", label: "Icon (Store/Star/MessageSquare/TrendingDown)" },
+                ].map(({ key, label: lbl }) => (
+                  <div key={key}>
+                    <label className="text-xs font-medium text-slate-600 mb-1 block">{lbl}</label>
+                    <Input value={String((cur as any)[key] ?? "")} onChange={(e) => (setCur as any)((p: any) => ({ ...p, [key]: e.target.value }))} className="rounded-xl" />
+                  </div>
+                ))}
+                <div className="flex items-center gap-3">
+                  <label className="text-xs font-medium text-slate-600">Positive</label>
+                  <Switch checked={cur.positive} onCheckedChange={(v) => (setCur as any)((p: any) => ({ ...p, positive: v }))} className="data-[state=checked]:bg-violet-500" />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={close} className="rounded-xl">Batal</Button>
+                <Button onClick={() => {
+                  if (adding) { onUpdate([...items, { ...(form as Omit<OutletStatItem, "id">), id: generateId() }]); close(); }
+                  else if (editing) { onUpdate(items.map((i) => i.id === editing.id ? editing : i)); close(); }
+                }} className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-500">Simpan</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
+    </div>
+  );
+}
+
+function OutletPriorityActionsSection({ items, onUpdate }: { items: OutletPriorityActionItem[]; onUpdate: (v: OutletPriorityActionItem[]) => void }) {
+  const [editing, setEditing] = useState<OutletPriorityActionItem | null>(null);
+  const [adding, setAdding] = useState(false);
+  const blank: Omit<OutletPriorityActionItem, "id"> = { priority: "medium", outlet: "", region: "", title: "", detail: "", impact: "" };
+  const [form, setForm] = useState<Omit<OutletPriorityActionItem, "id">>(blank);
+  const close = () => { setEditing(null); setAdding(false); };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button onClick={() => { setForm(blank); setAdding(true); setEditing(null); }} className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-500 hover:opacity-90"><Plus className="w-4 h-4 mr-2" />Add action</Button>
+      </div>
+      <div className="space-y-3">
+        {items.map((action) => (
+          <Card key={action.id} className="rounded-2xl border-slate-200">
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${action.priority === "high" ? "bg-red-100 text-red-700" : action.priority === "medium" ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>{action.priority}</span>
+                    <span className="text-xs text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full">{action.outlet}</span>
+                    <span className="text-xs text-slate-400">{action.region}</span>
+                  </div>
+                  <p className="font-semibold text-slate-800 text-sm">{action.title}</p>
+                  <p className="text-xs text-slate-500 mt-1">{action.detail}</p>
+                  <p className="text-xs text-violet-600 font-medium mt-1">{action.impact}</p>
+                </div>
+                <div className="flex gap-1 shrink-0">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditing({ ...action }); setAdding(false); }}><Pencil className="w-3 h-3" /></Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500" onClick={() => onUpdate(items.filter((i) => i.id !== action.id))}><Trash2 className="w-3 h-3" /></Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      {(editing || adding) && (() => {
+        const cur = editing ?? form;
+        const setCur = editing
+          ? (fn: (p: OutletPriorityActionItem) => OutletPriorityActionItem) => setEditing((p) => p ? fn(p) : p)
+          : (fn: (p: Omit<OutletPriorityActionItem, "id">) => Omit<OutletPriorityActionItem, "id">) => setForm(fn);
+        return (
+          <Dialog open onOpenChange={(o) => !o && close()}>
+            <DialogContent className="rounded-2xl sm:max-w-lg">
+              <DialogHeader><DialogTitle>{adding ? "Tambah action" : "Edit action"}</DialogTitle></DialogHeader>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-medium text-slate-600 mb-1 block">Priority</label>
+                  <select value={cur.priority} onChange={(e) => (setCur as any)((p: any) => ({ ...p, priority: e.target.value }))} className="w-full h-9 rounded-xl border border-slate-200 px-3 text-sm">
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                  </select>
+                </div>
+                {[
+                  { key: "outlet", label: "Outlet Name" },
+                  { key: "region", label: "Region" },
+                  { key: "title", label: "Title" },
+                  { key: "detail", label: "Detail" },
+                  { key: "impact", label: "Impact" },
+                ].map(({ key, label: lbl }) => (
+                  <div key={key}>
+                    <label className="text-xs font-medium text-slate-600 mb-1 block">{lbl}</label>
+                    <Input value={String((cur as any)[key] ?? "")} onChange={(e) => (setCur as any)((p: any) => ({ ...p, [key]: e.target.value }))} className="rounded-xl" />
+                  </div>
+                ))}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={close} className="rounded-xl">Batal</Button>
+                <Button onClick={() => {
+                  if (adding) { onUpdate([...items, { ...(form as Omit<OutletPriorityActionItem, "id">), id: generateId() }]); close(); }
+                  else if (editing) { onUpdate(items.map((i) => i.id === editing.id ? editing : i)); close(); }
+                }} className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-500">Simpan</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
+    </div>
+  );
+}
+
+function OutletMapDataSection({ items, onUpdate }: { items: OutletMapDataItem[]; onUpdate: (v: OutletMapDataItem[]) => void }) {
+  const [editing, setEditing] = useState<OutletMapDataItem | null>(null);
+  const [adding, setAdding] = useState(false);
+  const blank: Omit<OutletMapDataItem, "id"> = { name: "", region: "", city: "", lat: 0, lng: 0, status: "good", satisfaction: 4.0, reviews: 0, issues: [] };
+  const [form, setForm] = useState<Omit<OutletMapDataItem, "id">>(blank);
+  const close = () => { setEditing(null); setAdding(false); };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button onClick={() => { setForm(blank); setAdding(true); setEditing(null); }} className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-500 hover:opacity-90"><Plus className="w-4 h-4 mr-2" />Add outlet</Button>
+      </div>
+      <div className="overflow-x-auto rounded-2xl border border-slate-200">
+        <table className="w-full text-sm min-w-max">
+          <thead className="bg-slate-50 border-b border-slate-200">
+            <tr>
+              <th className="px-4 py-3 text-left font-semibold text-slate-700">Name</th>
+              <th className="px-4 py-3 text-left font-semibold text-slate-700">City</th>
+              <th className="px-4 py-3 text-left font-semibold text-slate-700">Status</th>
+              <th className="px-4 py-3 text-right font-semibold text-slate-700">Satisfaction</th>
+              <th className="px-4 py-3 text-right font-semibold text-slate-700">Reviews</th>
+              <th className="px-4 py-3 text-right font-semibold text-slate-700">Aksi</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {items.map((o) => (
+              <tr key={o.id} className="hover:bg-slate-50">
+                <td className="px-4 py-3 font-medium text-slate-800">{o.name}</td>
+                <td className="px-4 py-3 text-slate-600">{o.city}</td>
+                <td className="px-4 py-3"><span className={`text-xs px-2 py-0.5 rounded-full font-medium ${o.status === "critical" ? "bg-red-100 text-red-700" : o.status === "warning" ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>{o.status}</span></td>
+                <td className="px-4 py-3 text-right">{o.satisfaction.toFixed(1)}</td>
+                <td className="px-4 py-3 text-right">{o.reviews.toLocaleString()}</td>
+                <td className="px-4 py-3 text-right">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditing({ ...o, issues: [...o.issues] }); setAdding(false); }}><Pencil className="w-3 h-3" /></Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500" onClick={() => onUpdate(items.filter((i) => i.id !== o.id))}><Trash2 className="w-3 h-3" /></Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {(editing || adding) && (() => {
+        const cur = editing ?? form;
+        const setCur = editing
+          ? (fn: (p: OutletMapDataItem) => OutletMapDataItem) => setEditing((p) => p ? fn(p) : p)
+          : (fn: (p: Omit<OutletMapDataItem, "id">) => Omit<OutletMapDataItem, "id">) => setForm(fn);
+        return (
+          <Dialog open onOpenChange={(o) => !o && close()}>
+            <DialogContent className="rounded-2xl sm:max-w-lg overflow-y-auto max-h-[90vh]">
+              <DialogHeader><DialogTitle>{adding ? "Tambah outlet" : "Edit outlet"}</DialogTitle></DialogHeader>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-medium text-slate-600 mb-1 block">Status</label>
+                  <select value={cur.status} onChange={(e) => (setCur as any)((p: any) => ({ ...p, status: e.target.value }))} className="w-full h-9 rounded-xl border border-slate-200 px-3 text-sm">
+                    <option value="good">Good</option>
+                    <option value="warning">Warning</option>
+                    <option value="critical">Critical</option>
+                  </select>
+                </div>
+                {[
+                  { key: "name", label: "Outlet Name", type: "text" },
+                  { key: "region", label: "Region", type: "text" },
+                  { key: "city", label: "City", type: "text" },
+                  { key: "lat", label: "Latitude", type: "number" },
+                  { key: "lng", label: "Longitude", type: "number" },
+                  { key: "satisfaction", label: "Satisfaction (0-5)", type: "number" },
+                  { key: "reviews", label: "Reviews Count", type: "number" },
+                ].map(({ key, label: lbl, type }) => (
+                  <div key={key}>
+                    <label className="text-xs font-medium text-slate-600 mb-1 block">{lbl}</label>
+                    <Input type={type} step={key === "satisfaction" ? 0.1 : key === "lat" || key === "lng" ? 0.0001 : 1}
+                      value={String((cur as any)[key] ?? "")}
+                      onChange={(e) => (setCur as any)((p: any) => ({ ...p, [key]: type === "number" ? Number(e.target.value) || 0 : e.target.value }))}
+                      className="rounded-xl"
+                    />
+                  </div>
+                ))}
+                <div>
+                  <label className="text-xs font-medium text-slate-600 mb-1 block">Issues (satu per baris)</label>
+                  <textarea
+                    rows={3}
+                    value={(cur.issues ?? []).join("\n")}
+                    onChange={(e) => (setCur as any)((p: any) => ({ ...p, issues: e.target.value.split("\n").filter(Boolean) }))}
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-violet-300"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={close} className="rounded-xl">Batal</Button>
+                <Button onClick={() => {
+                  if (adding) { onUpdate([...items, { ...(form as Omit<OutletMapDataItem, "id">), id: generateId() }]); close(); }
+                  else if (editing) { onUpdate(items.map((i) => i.id === editing.id ? editing : i)); close(); }
+                }} className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-500">Simpan</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
+    </div>
+  );
+}
+
+function OutletSentimentSection({
+  overall, byOutlet, onUpdateOverall, onUpdateByOutlet,
+}: {
+  overall: { positive: number; neutral: number; negative: number };
+  byOutlet: OutletSentimentByOutletItem[];
+  onUpdateOverall: (v: { positive: number; neutral: number; negative: number }) => void;
+  onUpdateByOutlet: (v: OutletSentimentByOutletItem[]) => void;
+}) {
+  const [editing, setEditing] = useState<OutletSentimentByOutletItem | null>(null);
+  const [adding, setAdding] = useState(false);
+  const blank: Omit<OutletSentimentByOutletItem, "id"> = { name: "", positive: 60, neutral: 20, negative: 20 };
+  const [form, setForm] = useState<Omit<OutletSentimentByOutletItem, "id">>(blank);
+  const close = () => { setEditing(null); setAdding(false); };
+
+  return (
+    <div className="space-y-5">
+      <Card className="rounded-2xl border-slate-200">
+        <CardHeader className="pb-2"><CardTitle className="text-sm">Overall Sentiment</CardTitle></CardHeader>
+        <CardContent className="grid grid-cols-3 gap-3">
+          {[
+            { key: "positive", label: "Positive %" },
+            { key: "neutral", label: "Neutral %" },
+            { key: "negative", label: "Negative %" },
+          ].map(({ key, label: lbl }) => (
+            <div key={key}>
+              <label className="text-xs font-medium text-slate-600 mb-1 block">{lbl}</label>
+              <Input type="number" min={0} max={100}
+                value={(overall as any)[key]}
+                onChange={(e) => onUpdateOverall({ ...overall, [key]: Number(e.target.value) || 0 })}
+                className="rounded-xl"
+              />
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+      <div className="flex justify-end">
+        <Button onClick={() => { setForm(blank); setAdding(true); setEditing(null); }} className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-500 hover:opacity-90"><Plus className="w-4 h-4 mr-2" />Add outlet sentiment</Button>
+      </div>
+      <div className="rounded-2xl border border-slate-200 overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 border-b border-slate-200">
+            <tr>
+              <th className="px-4 py-3 text-left font-semibold text-slate-700">Outlet</th>
+              <th className="px-4 py-3 text-right font-semibold text-slate-700">Positive %</th>
+              <th className="px-4 py-3 text-right font-semibold text-slate-700">Neutral %</th>
+              <th className="px-4 py-3 text-right font-semibold text-slate-700">Negative %</th>
+              <th className="px-4 py-3 text-right font-semibold text-slate-700">Aksi</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {byOutlet.map((o) => (
+              <tr key={o.id} className="hover:bg-slate-50">
+                <td className="px-4 py-3 font-medium text-slate-800">{o.name}</td>
+                <td className="px-4 py-3 text-right text-emerald-600 font-medium">{o.positive}%</td>
+                <td className="px-4 py-3 text-right text-slate-500">{o.neutral}%</td>
+                <td className="px-4 py-3 text-right text-red-500 font-medium">{o.negative}%</td>
+                <td className="px-4 py-3 text-right">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditing({ ...o }); setAdding(false); }}><Pencil className="w-3 h-3" /></Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500" onClick={() => onUpdateByOutlet(byOutlet.filter((i) => i.id !== o.id))}><Trash2 className="w-3 h-3" /></Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {(editing || adding) && (() => {
+        const cur = editing ?? form;
+        const setCur = editing
+          ? (fn: (p: OutletSentimentByOutletItem) => OutletSentimentByOutletItem) => setEditing((p) => p ? fn(p) : p)
+          : (fn: (p: Omit<OutletSentimentByOutletItem, "id">) => Omit<OutletSentimentByOutletItem, "id">) => setForm(fn);
+        return (
+          <Dialog open onOpenChange={(o) => !o && close()}>
+            <DialogContent className="rounded-2xl sm:max-w-md">
+              <DialogHeader><DialogTitle>{adding ? "Tambah outlet sentiment" : "Edit outlet sentiment"}</DialogTitle></DialogHeader>
+              <div className="space-y-3">
+                {[
+                  { key: "name", label: "Outlet Name", type: "text" },
+                  { key: "positive", label: "Positive %", type: "number" },
+                  { key: "neutral", label: "Neutral %", type: "number" },
+                  { key: "negative", label: "Negative %", type: "number" },
+                ].map(({ key, label: lbl, type }) => (
+                  <div key={key}>
+                    <label className="text-xs font-medium text-slate-600 mb-1 block">{lbl}</label>
+                    <Input type={type} value={String((cur as any)[key] ?? "")} onChange={(e) => (setCur as any)((p: any) => ({ ...p, [key]: type === "number" ? Number(e.target.value) || 0 : e.target.value }))} className="rounded-xl" />
+                  </div>
+                ))}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={close} className="rounded-xl">Batal</Button>
+                <Button onClick={() => {
+                  if (adding) { onUpdateByOutlet([...byOutlet, { ...(form as Omit<OutletSentimentByOutletItem, "id">), id: generateId() }]); close(); }
+                  else if (editing) { onUpdateByOutlet(byOutlet.map((i) => i.id === editing.id ? editing : i)); close(); }
+                }} className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-500">Simpan</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
+    </div>
+  );
+}
+
+function OutletTopicsSection({ items, onUpdate }: { items: OutletTopicItem[]; onUpdate: (v: OutletTopicItem[]) => void }) {
+  const [editing, setEditing] = useState<OutletTopicItem | null>(null);
+  const [adding, setAdding] = useState(false);
+  const blank: Omit<OutletTopicItem, "id"> = { topic: "", mentions: 0, positive: 60, negative: 20 };
+  const [form, setForm] = useState<Omit<OutletTopicItem, "id">>(blank);
+  const close = () => { setEditing(null); setAdding(false); };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button onClick={() => { setForm(blank); setAdding(true); setEditing(null); }} className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-500 hover:opacity-90"><Plus className="w-4 h-4 mr-2" />Add topic</Button>
+      </div>
+      <div className="rounded-2xl border border-slate-200 overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="bg-slate-50 border-b border-slate-200">
+            <tr>
+              <th className="px-4 py-3 text-left font-semibold text-slate-700">Topic</th>
+              <th className="px-4 py-3 text-right font-semibold text-slate-700">Mentions</th>
+              <th className="px-4 py-3 text-right font-semibold text-slate-700">Positive %</th>
+              <th className="px-4 py-3 text-right font-semibold text-slate-700">Negative %</th>
+              <th className="px-4 py-3 text-right font-semibold text-slate-700">Aksi</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {items.map((t) => (
+              <tr key={t.id} className="hover:bg-slate-50">
+                <td className="px-4 py-3 font-medium text-slate-800">{t.topic}</td>
+                <td className="px-4 py-3 text-right">{t.mentions.toLocaleString()}</td>
+                <td className="px-4 py-3 text-right text-emerald-600 font-medium">{t.positive}%</td>
+                <td className="px-4 py-3 text-right text-red-500 font-medium">{t.negative}%</td>
+                <td className="px-4 py-3 text-right">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditing({ ...t }); setAdding(false); }}><Pencil className="w-3 h-3" /></Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500" onClick={() => onUpdate(items.filter((i) => i.id !== t.id))}><Trash2 className="w-3 h-3" /></Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {(editing || adding) && (() => {
+        const cur = editing ?? form;
+        const setCur = editing
+          ? (fn: (p: OutletTopicItem) => OutletTopicItem) => setEditing((p) => p ? fn(p) : p)
+          : (fn: (p: Omit<OutletTopicItem, "id">) => Omit<OutletTopicItem, "id">) => setForm(fn);
+        return (
+          <Dialog open onOpenChange={(o) => !o && close()}>
+            <DialogContent className="rounded-2xl sm:max-w-md">
+              <DialogHeader><DialogTitle>{adding ? "Tambah topic" : "Edit topic"}</DialogTitle></DialogHeader>
+              <div className="space-y-3">
+                {[
+                  { key: "topic", label: "Topic", type: "text" },
+                  { key: "mentions", label: "Mentions", type: "number" },
+                  { key: "positive", label: "Positive %", type: "number" },
+                  { key: "negative", label: "Negative %", type: "number" },
+                ].map(({ key, label: lbl, type }) => (
+                  <div key={key}>
+                    <label className="text-xs font-medium text-slate-600 mb-1 block">{lbl}</label>
+                    <Input type={type} value={String((cur as any)[key] ?? "")} onChange={(e) => (setCur as any)((p: any) => ({ ...p, [key]: type === "number" ? Number(e.target.value) || 0 : e.target.value }))} className="rounded-xl" />
+                  </div>
+                ))}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={close} className="rounded-xl">Batal</Button>
+                <Button onClick={() => {
+                  if (adding) { onUpdate([...items, { ...(form as Omit<OutletTopicItem, "id">), id: generateId() }]); close(); }
+                  else if (editing) { onUpdate(items.map((i) => i.id === editing.id ? editing : i)); close(); }
+                }} className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-500">Simpan</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
+    </div>
+  );
+}
+
+function OutletReviewsSection({ items, onUpdate }: { items: OutletRecentReviewItem[]; onUpdate: (v: OutletRecentReviewItem[]) => void }) {
+  const [editing, setEditing] = useState<OutletRecentReviewItem | null>(null);
+  const [adding, setAdding] = useState(false);
+  const blank: Omit<OutletRecentReviewItem, "id"> = { outlet: "", sentiment: "positive", text: "", stars: 5 };
+  const [form, setForm] = useState<Omit<OutletRecentReviewItem, "id">>(blank);
+  const close = () => { setEditing(null); setAdding(false); };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button onClick={() => { setForm(blank); setAdding(true); setEditing(null); }} className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-500 hover:opacity-90"><Plus className="w-4 h-4 mr-2" />Add review</Button>
+      </div>
+      <div className="space-y-3">
+        {items.map((r) => (
+          <Card key={r.id} className="rounded-2xl border-slate-200">
+            <CardContent className="p-4 flex items-start gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs font-semibold text-violet-600 bg-violet-50 px-2 py-0.5 rounded-full">{r.outlet}</span>
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${r.sentiment === "positive" ? "bg-emerald-100 text-emerald-700" : r.sentiment === "negative" ? "bg-red-100 text-red-600" : "bg-slate-100 text-slate-600"}`}>{r.sentiment}</span>
+                  <span className="text-xs text-slate-500">⭐ {r.stars}</span>
+                </div>
+                <p className="text-sm text-slate-700">"{r.text}"</p>
+              </div>
+              <div className="flex gap-1 shrink-0">
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditing({ ...r }); setAdding(false); }}><Pencil className="w-3 h-3" /></Button>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500" onClick={() => onUpdate(items.filter((i) => i.id !== r.id))}><Trash2 className="w-3 h-3" /></Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      {(editing || adding) && (() => {
+        const cur = editing ?? form;
+        const setCur = editing
+          ? (fn: (p: OutletRecentReviewItem) => OutletRecentReviewItem) => setEditing((p) => p ? fn(p) : p)
+          : (fn: (p: Omit<OutletRecentReviewItem, "id">) => Omit<OutletRecentReviewItem, "id">) => setForm(fn);
+        return (
+          <Dialog open onOpenChange={(o) => !o && close()}>
+            <DialogContent className="rounded-2xl sm:max-w-lg">
+              <DialogHeader><DialogTitle>{adding ? "Tambah review" : "Edit review"}</DialogTitle></DialogHeader>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-medium text-slate-600 mb-1 block">Sentiment</label>
+                  <select value={cur.sentiment} onChange={(e) => (setCur as any)((p: any) => ({ ...p, sentiment: e.target.value }))} className="w-full h-9 rounded-xl border border-slate-200 px-3 text-sm">
+                    <option value="positive">Positive</option>
+                    <option value="neutral">Neutral</option>
+                    <option value="negative">Negative</option>
+                  </select>
+                </div>
+                {[
+                  { key: "outlet", label: "Outlet Name", type: "text" },
+                  { key: "stars", label: "Stars (1-5)", type: "number" },
+                  { key: "text", label: "Review Text", type: "text" },
+                ].map(({ key, label: lbl, type }) => (
+                  <div key={key}>
+                    <label className="text-xs font-medium text-slate-600 mb-1 block">{lbl}</label>
+                    <Input type={type} min={1} max={5}
+                      value={String((cur as any)[key] ?? "")}
+                      onChange={(e) => (setCur as any)((p: any) => ({ ...p, [key]: type === "number" ? Number(e.target.value) || 0 : e.target.value }))}
+                      className="rounded-xl"
+                    />
+                  </div>
+                ))}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={close} className="rounded-xl">Batal</Button>
+                <Button onClick={() => {
+                  if (adding) { onUpdate([...items, { ...(form as Omit<OutletRecentReviewItem, "id">), id: generateId() }]); close(); }
+                  else if (editing) { onUpdate(items.map((i) => i.id === editing.id ? editing : i)); close(); }
+                }} className="rounded-xl bg-gradient-to-r from-violet-500 to-cyan-500">Simpan</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
     </div>
   );
 }

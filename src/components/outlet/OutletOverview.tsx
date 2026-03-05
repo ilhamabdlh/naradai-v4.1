@@ -1,54 +1,27 @@
-import { Store, Star, MessageSquare, TrendingDown, Info } from "lucide-react";
+import { Store, Star, MessageSquare, TrendingDown, TrendingUp, Info } from "lucide-react";
 import { useState } from "react";
+import { useDashboardContent } from "@/contexts/DashboardContentContext";
+import { defaultDashboardContent } from "@/lib/dashboard-content-store";
 
-const stats = [
-  {
-    label: "Total Outlets",
-    value: "124",
-    change: "+3",
-    positive: true,
-    icon: Store,
-    description: "Total number of active outlets across all regions.",
-    color: "from-violet-400 to-violet-600",
-    iconBg: "from-violet-50 to-indigo-50",
-    iconText: "text-violet-600",
-  },
-  {
-    label: "Avg. Satisfaction",
-    value: "3.8",
-    change: "-0.2",
-    positive: false,
-    icon: Star,
-    description: "Average customer satisfaction score (out of 5) across all outlets.",
-    color: "from-amber-400 to-orange-500",
-    iconBg: "from-amber-50 to-orange-50",
-    iconText: "text-amber-600",
-  },
-  {
-    label: "Total Reviews",
-    value: "41.2K",
-    change: "+18%",
-    positive: true,
-    icon: MessageSquare,
-    description: "Total customer reviews collected across all outlets.",
-    color: "from-cyan-400 to-sky-500",
-    iconBg: "from-cyan-50 to-sky-50",
-    iconText: "text-cyan-600",
-  },
-  {
-    label: "Critical Outlets",
-    value: "9",
-    change: "+2",
-    positive: false,
-    icon: TrendingDown,
-    description: "Outlets with satisfaction scores below the critical threshold (< 3.0).",
-    color: "from-red-400 to-rose-500",
-    iconBg: "from-red-50 to-rose-50",
-    iconText: "text-red-600",
-  },
-];
+const ICON_MAP: Record<string, typeof Store> = {
+  Store,
+  Star,
+  MessageSquare,
+  TrendingDown,
+  TrendingUp,
+};
+
+const COLOR_MAP: Record<string, { color: string; iconBg: string; iconText: string }> = {
+  Store:         { color: "from-violet-400 to-violet-600",  iconBg: "from-violet-50 to-indigo-50",  iconText: "text-violet-600" },
+  Star:          { color: "from-amber-400 to-orange-500",   iconBg: "from-amber-50 to-orange-50",   iconText: "text-amber-600" },
+  MessageSquare: { color: "from-cyan-400 to-sky-500",       iconBg: "from-cyan-50 to-sky-50",       iconText: "text-cyan-600" },
+  TrendingDown:  { color: "from-red-400 to-rose-500",       iconBg: "from-red-50 to-rose-50",       iconText: "text-red-600" },
+  TrendingUp:    { color: "from-emerald-400 to-teal-500",   iconBg: "from-emerald-50 to-teal-50",   iconText: "text-emerald-600" },
+};
 
 export function OutletOverview() {
+  const content = useDashboardContent();
+  const stats = content?.outletStats ?? defaultDashboardContent.outletStats ?? [];
   const [openTooltip, setOpenTooltip] = useState<string | null>(null);
 
   return (
@@ -63,16 +36,18 @@ export function OutletOverview() {
         </div>
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
+        {stats.map((stat, idx) => {
+          const iconKey = stat.icon as keyof typeof ICON_MAP;
+          const Icon = ICON_MAP[iconKey] ?? Store;
+          const colors = COLOR_MAP[iconKey] ?? COLOR_MAP["Store"];
           return (
             <div
-              key={stat.label}
+              key={stat.id ?? idx}
               className="relative overflow-hidden rounded-2xl bg-white border border-slate-200 p-6 hover:border-violet-300 transition-colors shadow-sm hover:shadow-md"
             >
               <div className="mb-4">
-                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.iconBg} flex items-center justify-center`}>
-                  <Icon className={`w-6 h-6 ${stat.iconText}`} />
+                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${colors.iconBg} flex items-center justify-center`}>
+                  <Icon className={`w-6 h-6 ${colors.iconText}`} />
                 </div>
               </div>
               <div className="text-3xl font-bold text-slate-900 mb-1">{stat.value}</div>
@@ -99,7 +74,7 @@ export function OutletOverview() {
                   {stat.change}
                 </span>
               </div>
-              <div className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${stat.color}`} />
+              <div className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${colors.color}`} />
             </div>
           );
         })}

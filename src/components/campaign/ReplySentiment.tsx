@@ -1,86 +1,7 @@
 import { MessageCircle, ThumbsUp, ThumbsDown, Minus, ChevronDown, ChevronUp } from "lucide-react";
 import { useState } from "react";
-
-const sentimentBreakdown = [
-  { label: "Positive", pct: 74, color: "bg-emerald-400", text: "text-emerald-700", bg: "bg-emerald-50", icon: ThumbsUp },
-  { label: "Neutral",  pct: 16, color: "bg-slate-300",   text: "text-slate-600",   bg: "bg-slate-50",   icon: Minus },
-  { label: "Negative", pct: 10, color: "bg-red-400",     text: "text-red-600",     bg: "bg-red-50",     icon: ThumbsDown },
-];
-
-const topicClusters = [
-  {
-    topic: "Product Quality",
-    totalReplies: 9800,
-    positive: 82,
-    neutral: 12,
-    negative: 6,
-    topComments: [
-      "This is literally the best product I've tried all year 🔥",
-      "Quality feels premium, definitely worth the price",
-      "The finish is a bit disappointing compared to photos",
-    ],
-  },
-  {
-    topic: "Pricing & Value",
-    totalReplies: 7200,
-    positive: 54,
-    neutral: 22,
-    negative: 24,
-    topComments: [
-      "A bit pricey for what you get tbh",
-      "Worth every penny if you use it daily",
-      "Why is it more expensive than last year's version?",
-    ],
-  },
-  {
-    topic: "Brand Vibe & Aesthetics",
-    totalReplies: 6400,
-    positive: 88,
-    neutral: 9,
-    negative: 3,
-    topComments: [
-      "The campaign visuals are absolutely stunning ✨",
-      "Love the energy and direction this brand is going",
-      "Very on-brand and consistent — refreshing!",
-    ],
-  },
-  {
-    topic: "Delivery & Availability",
-    totalReplies: 5100,
-    positive: 61,
-    neutral: 18,
-    negative: 21,
-    topComments: [
-      "Still waiting for my order from 2 weeks ago 😤",
-      "Arrived super fast, impressed with logistics",
-      "Out of stock in my region again, frustrating",
-    ],
-  },
-  {
-    topic: "Content & Creator Collab",
-    totalReplies: 4900,
-    positive: 79,
-    neutral: 14,
-    negative: 7,
-    topComments: [
-      "The influencer collab was so authentic and fun",
-      "Finally a brand collab that doesn't feel forced",
-      "Great content but felt a bit scripted at times",
-    ],
-  },
-  {
-    topic: "Campaign Concept",
-    totalReplies: 4200,
-    positive: 71,
-    neutral: 19,
-    negative: 10,
-    topComments: [
-      "The storytelling in this campaign is next level",
-      "Really resonated with the theme, well done",
-      "Not sure I understood the message clearly",
-    ],
-  },
-];
+import { useDashboardContent } from "@/contexts/DashboardContentContext";
+import { defaultDashboardContent } from "@/lib/dashboard-content-store";
 
 function SentimentBar({ positive, neutral, negative }: { positive: number; neutral: number; negative: number }) {
   return (
@@ -93,8 +14,18 @@ function SentimentBar({ positive, neutral, negative }: { positive: number; neutr
 }
 
 export function ReplySentiment() {
+  const content = useDashboardContent();
+  const overall = content?.campaignReplySentiment ?? defaultDashboardContent.campaignReplySentiment ?? { positive: 74, neutral: 16, negative: 10 };
+  const topicClusters = content?.campaignReplyTopics ?? defaultDashboardContent.campaignReplyTopics ?? [];
+
   const [expanded, setExpanded] = useState<string | null>(null);
   const totalReplies = topicClusters.reduce((s, t) => s + t.totalReplies, 0);
+
+  const sentimentBreakdown = [
+    { label: "Positive", pct: overall.positive, color: "bg-emerald-400", text: "text-emerald-700", bg: "bg-emerald-50", icon: ThumbsUp },
+    { label: "Neutral",  pct: overall.neutral,  color: "bg-slate-300",   text: "text-slate-600",   bg: "bg-slate-50",   icon: Minus },
+    { label: "Negative", pct: overall.negative, color: "bg-red-400",     text: "text-red-600",     bg: "bg-red-50",     icon: ThumbsDown },
+  ];
 
   return (
     <div id="reply-sentiment" className="space-y-5">
@@ -108,7 +39,6 @@ export function ReplySentiment() {
         </div>
       </div>
 
-      {/* Overall sentiment bar */}
       <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6 space-y-5">
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-slate-800">Overall Reply Sentiment</h3>
@@ -139,7 +69,6 @@ export function ReplySentiment() {
         </div>
       </div>
 
-      {/* Topic clusters */}
       <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 bg-slate-50">
           <h3 className="font-semibold text-slate-800">Reply Topics</h3>
@@ -147,12 +76,12 @@ export function ReplySentiment() {
         </div>
         <div className="divide-y divide-slate-100">
           {topicClusters.map((t) => {
-            const isOpen = expanded === t.topic;
-            const sharePct = Math.round((t.totalReplies / totalReplies) * 100);
+            const isOpen = expanded === t.id;
+            const sharePct = totalReplies > 0 ? Math.round((t.totalReplies / totalReplies) * 100) : 0;
             return (
-              <div key={t.topic}>
+              <div key={t.id}>
                 <button
-                  onClick={() => setExpanded(isOpen ? null : t.topic)}
+                  onClick={() => setExpanded(isOpen ? null : t.id)}
                   className="w-full px-6 py-4 hover:bg-slate-50 transition-colors text-left"
                 >
                   <div className="flex items-center gap-4">

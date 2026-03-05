@@ -1,27 +1,12 @@
 import { BarChart3 } from "lucide-react";
-
-const competitors = [
-  { brand: "Your Brand",   posts: 264, likes: 184200, replies: 41800, shares: 29600, sentiment: 0.76 },
-  { brand: "Competitor A", posts: 198, likes: 152400, replies: 28900, shares: 21300, sentiment: 0.68 },
-  { brand: "Competitor B", posts: 143, likes: 118700, replies: 34100, shares: 18900, sentiment: 0.72 },
-  { brand: "Competitor C", posts: 310, likes: 87600,  replies: 19200, shares: 11400, sentiment: 0.59 },
-  { brand: "Competitor D", posts: 97,  likes: 214500, replies: 52300, shares: 38100, sentiment: 0.81 },
-];
+import { useDashboardContent } from "@/contexts/DashboardContentContext";
+import { defaultDashboardContent } from "@/lib/dashboard-content-store";
 
 type MetricKey = "posts" | "likes" | "replies" | "shares";
 const metricKeys: MetricKey[] = ["posts", "likes", "replies", "shares"];
 
 function fmt(n: number) {
   return n >= 1000 ? (n / 1000).toFixed(1) + "K" : String(n);
-}
-
-function buildScales(data: typeof competitors): Record<MetricKey, { min: number; max: number }> {
-  const scales = {} as Record<MetricKey, { min: number; max: number }>;
-  for (const key of metricKeys) {
-    const vals = data.map((r) => r[key]);
-    scales[key] = { min: Math.min(...vals), max: Math.max(...vals) };
-  }
-  return scales;
 }
 
 function intensity(value: number, min: number, max: number) {
@@ -40,9 +25,16 @@ function textColor(t: number): string {
   return t > 0.55 ? "#ffffff" : "#1e293b";
 }
 
-const scales = buildScales(competitors);
-
 export function CompetitorCampaigns() {
+  const content = useDashboardContent();
+  const competitors = content?.campaignCompetitors ?? defaultDashboardContent.campaignCompetitors ?? [];
+
+  const scales = {} as Record<MetricKey, { min: number; max: number }>;
+  for (const key of metricKeys) {
+    const vals = competitors.map((r) => r[key] as number);
+    scales[key] = { min: Math.min(...vals), max: Math.max(...vals) };
+  }
+
   return (
     <div id="competitor-campaigns" className="space-y-5">
       <div className="flex items-center gap-3">
@@ -51,9 +43,7 @@ export function CompetitorCampaigns() {
         </div>
         <div>
           <h2 className="text-xl font-bold text-slate-900">Competitor Campaigns</h2>
-          <p className="text-sm text-slate-500">
-            Heatmap scaled per column — darker cells rank higher within that metric
-          </p>
+          <p className="text-sm text-slate-500">Heatmap scaled per column — darker cells rank higher within that metric</p>
         </div>
       </div>
 
@@ -71,7 +61,7 @@ export function CompetitorCampaigns() {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {competitors.map((c, i) => (
-              <tr key={c.brand} className="hover:brightness-95 transition-all">
+              <tr key={c.id} className="hover:brightness-95 transition-all">
                 <td className={`px-5 py-3.5 ${i === 0 ? "bg-violet-50/60" : ""}`}>
                   <div className="flex items-center gap-2">
                     {i === 0 && (
@@ -83,7 +73,7 @@ export function CompetitorCampaigns() {
                   </div>
                 </td>
                 {metricKeys.map((key) => {
-                  const t = intensity(c[key], scales[key].min, scales[key].max);
+                  const t = intensity(c[key] as number, scales[key].min, scales[key].max);
                   const bg = heatColor(t);
                   const fg = textColor(t);
                   return (
@@ -92,7 +82,7 @@ export function CompetitorCampaigns() {
                         className="inline-block rounded-lg px-3 py-1.5 text-xs font-semibold tabular-nums min-w-[60px]"
                         style={{ backgroundColor: bg, color: fg }}
                       >
-                        {fmt(c[key])}
+                        {fmt(c[key] as number)}
                       </span>
                     </td>
                   );
@@ -101,9 +91,7 @@ export function CompetitorCampaigns() {
                   <div className="flex items-center justify-end gap-1.5">
                     <div className="w-16 h-1.5 rounded-full bg-slate-100 overflow-hidden">
                       <div
-                        className={`h-full rounded-full ${
-                          c.sentiment >= 0.7 ? "bg-emerald-400" : c.sentiment >= 0.5 ? "bg-amber-400" : "bg-red-400"
-                        }`}
+                        className={`h-full rounded-full ${c.sentiment >= 0.7 ? "bg-emerald-400" : c.sentiment >= 0.5 ? "bg-amber-400" : "bg-red-400"}`}
                         style={{ width: `${c.sentiment * 100}%` }}
                       />
                     </div>
@@ -118,10 +106,7 @@ export function CompetitorCampaigns() {
           <span className="text-xs text-slate-400 font-medium">Scale per column:</span>
           <div className="flex items-center gap-1.5">
             <span className="text-xs text-slate-400">Low</span>
-            <div
-              className="h-2.5 w-28 rounded-full"
-              style={{ background: `linear-gradient(to right, ${heatColor(0)}, ${heatColor(1)})` }}
-            />
+            <div className="h-2.5 w-28 rounded-full" style={{ background: `linear-gradient(to right, ${heatColor(0)}, ${heatColor(1)})` }} />
             <span className="text-xs text-slate-400">High</span>
           </div>
         </div>

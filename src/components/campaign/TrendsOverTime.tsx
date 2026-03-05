@@ -1,24 +1,34 @@
 import { TrendingUp } from "lucide-react";
 import { useState } from "react";
+import { useDashboardContent } from "@/contexts/DashboardContentContext";
+import { useDataFilter } from "@/contexts/DataFilterContext";
+import { defaultDashboardContent } from "@/lib/dashboard-content-store";
 
-const months = ["Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb"];
+type MetricKey = "likes" | "shares" | "replies";
 
-const datasets: Record<string, number[]> = {
-  likes:   [28, 34, 41, 52, 63, 74, 88],
-  shares:  [3.2, 3.8, 4.4, 5.1, 5.8, 6.4, 7.2],
-  replies: [5.1, 6.0, 7.2, 8.8, 10.4, 12.1, 14.3],
-};
-
-const metricConfig: Record<string, { label: string; unit: string; colorBar: string; colorBtn: string }> = {
+const metricConfig: Record<MetricKey, { label: string; unit: string; colorBar: string; colorBtn: string }> = {
   likes:   { label: "Likes",   unit: "K", colorBar: "bg-rose-400",   colorBtn: "text-rose-600 bg-rose-50 border-rose-200" },
   shares:  { label: "Shares",  unit: "K", colorBar: "bg-violet-500", colorBtn: "text-violet-600 bg-violet-50 border-violet-200" },
   replies: { label: "Replies", unit: "K", colorBar: "bg-cyan-500",   colorBtn: "text-cyan-600 bg-cyan-50 border-cyan-200" },
 };
 
+const HORIZON_SLICE: Record<string, number> = {
+  "7d":  2,
+  "30d": 4,
+  "90d": 7,
+};
+
 export function TrendsOverTime() {
-  const [activeMetric, setActiveMetric] = useState("likes");
-  const data = datasets[activeMetric];
-  const max = Math.max(...data);
+  const content = useDashboardContent();
+  const { appliedFilter } = useDataFilter();
+  const allData = content?.campaignTrendData ?? defaultDashboardContent.campaignTrendData ?? [];
+
+  const sliceCount = HORIZON_SLICE[appliedFilter.timeHorizon] ?? allData.length;
+  const data = allData.slice(-sliceCount);
+
+  const [activeMetric, setActiveMetric] = useState<MetricKey>("likes");
+  const values = data.map((d) => d[activeMetric] as number);
+  const max = Math.max(...values, 1);
 
   return (
     <div id="trends-over-time" className="space-y-5">
@@ -33,7 +43,7 @@ export function TrendsOverTime() {
       </div>
       <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6 space-y-5">
         <div className="flex gap-2 flex-wrap">
-          {Object.keys(metricConfig).map((m) => (
+          {(Object.keys(metricConfig) as MetricKey[]).map((m) => (
             <button
               key={m}
               onClick={() => setActiveMetric(m)}
@@ -48,10 +58,11 @@ export function TrendsOverTime() {
           ))}
         </div>
         <div className="flex items-end gap-2" style={{ height: "192px" }}>
-          {data.map((val, i) => {
+          {data.map((d, i) => {
+            const val = d[activeMetric] as number;
             const heightPct = (val / max) * 100;
             return (
-              <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
+              <div key={d.id ?? i} className="flex-1 flex flex-col items-center gap-1.5">
                 <span className="text-xs text-slate-500 font-medium">{val}{metricConfig[activeMetric].unit}</span>
                 <div className="w-full flex flex-col justify-end" style={{ height: "140px" }}>
                   <div
@@ -59,7 +70,7 @@ export function TrendsOverTime() {
                     style={{ height: `${heightPct}%` }}
                   />
                 </div>
-                <span className="text-xs text-slate-400">{months[i]}</span>
+                <span className="text-xs text-slate-400">{d.month}</span>
               </div>
             );
           })}

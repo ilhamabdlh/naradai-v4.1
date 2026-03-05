@@ -701,37 +701,37 @@ export function CompetitiveAnalysis() {
               </ScatterChart>
           </ResponsiveContainer>
 
-          {/* Quadrant Labels */}
-          <div className="absolute top-8 left-20 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-1.5 pointer-events-none">
-            <div className="flex items-center gap-1.5">
-              <TrendingUp className="w-4 h-4 text-emerald-600" />
-              <span className="text-xs font-semibold text-emerald-700">Winning Position</span>
+          {/* Quadrant Labels — semi-transparan & menempel di sudut chart agar tidak menutupi data point */}
+          <div className="absolute top-5 left-[68px] bg-emerald-50/70 border border-emerald-200/70 rounded-lg px-2.5 py-1 pointer-events-none backdrop-blur-[2px]">
+            <div className="flex items-center gap-1">
+              <TrendingUp className="w-3 h-3 text-emerald-600" />
+              <span className="text-[11px] font-semibold text-emerald-700">Winning Position</span>
             </div>
-            <p className="text-xs text-emerald-600 mt-0.5">High sentiment, Low mentions</p>
+            <p className="text-[10px] text-emerald-600/90 mt-0.5">High sentiment, Low mentions</p>
           </div>
 
-          <div className="absolute top-8 right-20 bg-cyan-50 border border-cyan-200 rounded-lg px-3 py-1.5 pointer-events-none">
-            <div className="flex items-center gap-1.5">
-              <Target className="w-4 h-4 text-cyan-600" />
-              <span className="text-xs font-semibold text-cyan-700">Amplify Opportunity</span>
+          <div className="absolute top-5 right-3 bg-cyan-50/70 border border-cyan-200/70 rounded-lg px-2.5 py-1 pointer-events-none backdrop-blur-[2px]">
+            <div className="flex items-center gap-1">
+              <Target className="w-3 h-3 text-cyan-600" />
+              <span className="text-[11px] font-semibold text-cyan-700">Amplify Opportunity</span>
             </div>
-            <p className="text-xs text-cyan-600 mt-0.5">High sentiment, High mentions</p>
+            <p className="text-[10px] text-cyan-600/90 mt-0.5">High sentiment, High mentions</p>
           </div>
 
-          <div className="absolute bottom-24 left-20 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 pointer-events-none">
-            <div className="flex items-center gap-1.5">
-              <Lightbulb className="w-4 h-4 text-amber-600" />
-              <span className="text-xs font-semibold text-amber-700">Room for Improvement</span>
+          <div className="absolute bottom-[68px] left-[68px] bg-amber-50/70 border border-amber-200/70 rounded-lg px-2.5 py-1 pointer-events-none backdrop-blur-[2px]">
+            <div className="flex items-center gap-1">
+              <Lightbulb className="w-3 h-3 text-amber-600" />
+              <span className="text-[11px] font-semibold text-amber-700">Room for Improvement</span>
             </div>
-            <p className="text-xs text-amber-600 mt-0.5">Low sentiment, Low mentions</p>
+            <p className="text-[10px] text-amber-600/90 mt-0.5">Low sentiment, Low mentions</p>
           </div>
 
-          <div className="absolute bottom-24 right-20 bg-red-50 border border-red-200 rounded-lg px-3 py-1.5 pointer-events-none">
-            <div className="flex items-center gap-1.5">
-              <AlertTriangle className="w-4 h-4 text-red-600" />
-              <span className="text-xs font-semibold text-red-700">Critical Issue</span>
+          <div className="absolute bottom-[68px] right-3 bg-red-50/70 border border-red-200/70 rounded-lg px-2.5 py-1 pointer-events-none backdrop-blur-[2px]">
+            <div className="flex items-center gap-1">
+              <AlertTriangle className="w-3 h-3 text-red-600" />
+              <span className="text-[11px] font-semibold text-red-700">Critical Issue</span>
             </div>
-            <p className="text-xs text-red-600 mt-0.5">Low sentiment, High mentions</p>
+            <p className="text-[10px] text-red-600/90 mt-0.5">Low sentiment, High mentions</p>
           </div>
         </div>
 

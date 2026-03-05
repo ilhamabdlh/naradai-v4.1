@@ -11,6 +11,27 @@ import type {
   WordCloudItem,
 } from "./dashboard-content-types";
 import { defaultFeatureVisibility } from "./dashboard-content-types";
+import type {
+  CampaignStatItem,
+  CampaignItem,
+  CampaignTrendDataPoint,
+  CampaignTimeSeriesPoint,
+  CampaignPostPublishEvent,
+  CampaignKeyEvent,
+  CampaignReplySentimentOverall,
+  CampaignReplyTopicCluster,
+  CampaignContentTypeItem,
+  CampaignTopPostItem,
+  CampaignChannelItem,
+  CampaignCompetitorItem,
+  CampaignRecommendationItem,
+  OutletStatItem,
+  OutletPriorityActionItem,
+  OutletMapDataItem,
+  OutletSentimentByOutletItem,
+  OutletTopicItem,
+  OutletRecentReviewItem,
+} from "./dashboard-content-types";
 import { getInitialDashboardContentForInstance } from "./initial-data";
 
 const STORAGE_KEY_PREFIX = "naradai_dashboard_content";
@@ -247,6 +268,181 @@ export const defaultDashboardContent: DashboardContentStore = {
     competitorD: "Competitor D",
   },
   rawSourceContents: [],
+
+  // ─── Campaign Analysis Defaults ──────────────────────────────────────────
+  campaignStats: [
+    { id: "cs1", label: "Total Likes", value: "186K", change: "+22%", positive: true, description: "Total likes received across all campaign posts.", icon: "Heart" },
+    { id: "cs2", label: "Total Shares", value: "28.4K", change: "+14%", positive: true, description: "Total shares and reposts across all platforms.", icon: "Share2" },
+    { id: "cs3", label: "Total Replies", value: "41.2K", change: "+31%", positive: true, description: "Total replies and comments on campaign posts.", icon: "MessageCircle" },
+    { id: "cs4", label: "Positive Reply Rate", value: "74%", change: "+5pts", positive: true, description: "Percentage of replies classified as positive sentiment.", icon: "MessageCircle" },
+  ] as CampaignStatItem[],
+  campaignPerformance: [
+    { id: "cp1", name: "Summer Launch 2025", platform: "Instagram", likes: 48200, shares: 3200, replies: 1840, status: "active", sentiment: 0.78 },
+    { id: "cp2", name: "Year-End Sale", platform: "TikTok", likes: 92400, shares: 12800, replies: 4100, status: "completed", sentiment: 0.65 },
+    { id: "cp3", name: "Brand Awareness Q1", platform: "Twitter/X", likes: 8200, shares: 2400, replies: 920, status: "active", sentiment: 0.71 },
+    { id: "cp4", name: "Product Launch - ProMax", platform: "YouTube", likes: 18400, shares: 1100, replies: 680, status: "paused", sentiment: 0.55 },
+    { id: "cp5", name: "Influencer Collab Series", platform: "Instagram", likes: 61400, shares: 8900, replies: 5100, status: "active", sentiment: 0.82 },
+  ] as CampaignItem[],
+  campaignTrendData: [
+    { id: "ct1", month: "Aug", likes: 28, shares: 3.2, replies: 5.1 },
+    { id: "ct2", month: "Sep", likes: 34, shares: 3.8, replies: 6.0 },
+    { id: "ct3", month: "Oct", likes: 41, shares: 4.4, replies: 7.2 },
+    { id: "ct4", month: "Nov", likes: 52, shares: 5.1, replies: 8.8 },
+    { id: "ct5", month: "Dec", likes: 63, shares: 5.8, replies: 10.4 },
+    { id: "ct6", month: "Jan", likes: 74, shares: 6.4, replies: 12.1 },
+    { id: "ct7", month: "Feb", likes: 88, shares: 7.2, replies: 14.3 },
+  ] as CampaignTrendDataPoint[],
+  campaignTimeSeriesData: [
+    { id: "cts1",  date: "Jan 5",  likes: 820,  replies: 94,  shares: 61 },
+    { id: "cts2",  date: "Jan 8",  likes: 910,  replies: 102, shares: 70 },
+    { id: "cts3",  date: "Jan 10", likes: 870,  replies: 98,  shares: 66 },
+    { id: "cts4",  date: "Jan 13", likes: 1050, replies: 130, shares: 85 },
+    { id: "cts5",  date: "Jan 15", likes: 1420, replies: 198, shares: 120 },
+    { id: "cts6",  date: "Jan 18", likes: 1310, replies: 177, shares: 108 },
+    { id: "cts7",  date: "Jan 20", likes: 1180, replies: 155, shares: 95 },
+    { id: "cts8",  date: "Jan 22", likes: 1390, replies: 185, shares: 114 },
+    { id: "cts9",  date: "Jan 25", likes: 1680, replies: 232, shares: 147 },
+    { id: "cts10", date: "Jan 28", likes: 1540, replies: 210, shares: 133 },
+    { id: "cts11", date: "Feb 1",  likes: 1720, replies: 248, shares: 158 },
+    { id: "cts12", date: "Feb 4",  likes: 2050, replies: 310, shares: 193 },
+    { id: "cts13", date: "Feb 7",  likes: 1920, replies: 285, shares: 178 },
+    { id: "cts14", date: "Feb 10", likes: 2210, replies: 345, shares: 215 },
+    { id: "cts15", date: "Feb 13", likes: 2640, replies: 420, shares: 268 },
+    { id: "cts16", date: "Feb 16", likes: 2490, replies: 390, shares: 245 },
+    { id: "cts17", date: "Feb 18", likes: 2310, replies: 355, shares: 228 },
+    { id: "cts18", date: "Feb 20", likes: 2520, replies: 380, shares: 249 },
+    { id: "cts19", date: "Feb 22", likes: 3080, replies: 487, shares: 312 },
+    { id: "cts20", date: "Feb 25", likes: 2870, replies: 445, shares: 286 },
+    { id: "cts21", date: "Feb 28", likes: 3240, replies: 520, shares: 335 },
+  ] as CampaignTimeSeriesPoint[],
+  campaignPostPublishEvents: [
+    { id: "ppe1", date: "Jan 8",  label: "Reel #1 — Product Reveal",    type: "reel" },
+    { id: "ppe2", date: "Jan 15", label: "Thread — Founder Story",       type: "thread" },
+    { id: "ppe3", date: "Jan 22", label: "Carousel — Feature Breakdown", type: "carousel" },
+    { id: "ppe4", date: "Feb 1",  label: "Reel #2 — Tutorial",           type: "reel" },
+    { id: "ppe5", date: "Feb 10", label: "Static — UGC Compilation",     type: "image" },
+    { id: "ppe6", date: "Feb 13", label: "Reel #3 — Creator Collab",     type: "reel" },
+    { id: "ppe7", date: "Feb 22", label: "Live Stream Recap Clip",        type: "live_stream" },
+  ] as CampaignPostPublishEvent[],
+  campaignKeyEvents: [
+    { id: "cke1", date: "Jan 15", title: "First major engagement spike", type: "spike", insight: "The Founder Story thread published on Jan 15 drove a 35% jump in likes and a 52% surge in replies within 48 hours. Audience comments clustered around authenticity and brand trust — reply sentiment was 78% positive." },
+    { id: "cke2", date: "Feb 4",  title: "Sustained growth trend begins", type: "pivot", insight: "Starting Feb 4, all three engagement metrics entered a consistent upward trend. The Tutorial Reel appears to have onboarded a new audience cohort — shares nearly doubled week-over-week." },
+    { id: "cke3", date: "Feb 13", title: "Creator Collab inflection point", type: "spike", insight: "The Creator Collab Reel on Feb 13 produced the single-day highest like-to-reply ratio (6.3×) suggesting broad passive appreciation rather than active discussion." },
+    { id: "cke4", date: "Feb 22", title: "Replies & shares decouple from likes", type: "pivot", insight: "On Feb 22, replies (+28%) and shares (+26%) grew significantly faster than likes (+22%) — a decoupling that signals deeper audience involvement and purchase intent." },
+  ] as CampaignKeyEvent[],
+  campaignReplySentiment: { positive: 74, neutral: 16, negative: 10 } as CampaignReplySentimentOverall,
+  campaignReplyTopics: [
+    { id: "crt1", topic: "Product Quality",     totalReplies: 9800, positive: 82, neutral: 12, negative: 6,  topComments: ["This is literally the best product I've tried all year 🔥", "Quality feels premium, definitely worth the price", "The finish is a bit disappointing compared to photos"] },
+    { id: "crt2", topic: "Pricing & Value",     totalReplies: 7200, positive: 54, neutral: 22, negative: 24, topComments: ["A bit pricey for what you get tbh", "Worth every penny if you use it daily", "Why is it more expensive than last year's version?"] },
+    { id: "crt3", topic: "Brand Vibe & Aesthetics", totalReplies: 6400, positive: 88, neutral: 9, negative: 3, topComments: ["The campaign visuals are absolutely stunning ✨", "Love the energy and direction this brand is going", "Very on-brand and consistent — refreshing!"] },
+    { id: "crt4", topic: "Delivery & Availability", totalReplies: 5100, positive: 61, neutral: 18, negative: 21, topComments: ["Still waiting for my order from 2 weeks ago 😤", "Arrived super fast, impressed with logistics", "Out of stock in my region again, frustrating"] },
+    { id: "crt5", topic: "Content & Creator Collab", totalReplies: 4900, positive: 79, neutral: 14, negative: 7, topComments: ["The influencer collab was so authentic and fun", "Finally a brand collab that doesn't feel forced", "Great content but felt a bit scripted at times"] },
+    { id: "crt6", topic: "Campaign Concept",    totalReplies: 4200, positive: 71, neutral: 19, negative: 10, topComments: ["The storytelling in this campaign is next level", "Really resonated with the theme, well done", "Not sure I understood the message clearly"] },
+  ] as CampaignReplyTopicCluster[],
+  campaignContentTypes: [
+    { id: "cct1", type: "Reel",         platform: "Instagram", posts: 24, likes: 61400, shares: 8900,  replies: 5100, positiveSentiment: 81, negativeSentiment: 7,  topTopics: ["Brand Vibe", "Product Quality", "Content Style"],    audienceReaction: "High excitement & aspiration — audiences respond with enthusiasm and shareability" },
+    { id: "cct2", type: "Short Video",  platform: "TikTok",    posts: 32, likes: 92400, shares: 12800, replies: 4100, positiveSentiment: 79, negativeSentiment: 9,  topTopics: ["Campaign Concept", "Creator Collab", "Humor"],        audienceReaction: "Viral-driven response — heavy on shares and likes; replies lean humorous and conversational" },
+    { id: "cct3", type: "Thread",       platform: "Twitter/X", posts: 48, likes: 8200,  shares: 2400,  replies: 4800, positiveSentiment: 58, negativeSentiment: 22, topTopics: ["Pricing & Value", "Opinions", "Brand Comparison"],    audienceReaction: "High reply volume with polarised opinions — debates on price and comparisons to competitors" },
+    { id: "cct4", type: "Carousel",     platform: "Instagram", posts: 18, likes: 34200, shares: 4100,  replies: 2900, positiveSentiment: 76, negativeSentiment: 10, topTopics: ["Product Features", "Availability", "Aesthetics"],     audienceReaction: "Educational engagement — audiences save and share for reference, ask follow-up questions" },
+    { id: "cct5", type: "Static Image", platform: "Facebook",  posts: 56, likes: 12800, shares: 3400,  replies: 1900, positiveSentiment: 65, negativeSentiment: 15, topTopics: ["Promotions", "Delivery", "Brand Sentiment"],          audienceReaction: "Older audience segment — promotional content drives shares; service complaints appear in replies" },
+    { id: "cct6", type: "Live Stream",  platform: "YouTube",   posts: 6,  likes: 18400, shares: 1100,  replies: 8200, positiveSentiment: 72, negativeSentiment: 11, topTopics: ["Product Demo", "Q&A", "Authenticity"],                audienceReaction: "Deep engagement — high reply count from live Q&A; audiences value real-time authenticity" },
+  ] as CampaignContentTypeItem[],
+  campaignTopPosts: [
+    { id: "ctp1", type: "Short Video", title: "30-second campaign spot",    platform: "TikTok",    likes: 92400, shares: 12800, replies: 4100, sentiment: 0.79 },
+    { id: "ctp2", type: "Reel",        title: "Behind-the-scenes reveal",   platform: "Instagram", likes: 48200, shares: 3200,  replies: 1840, sentiment: 0.84 },
+    { id: "ctp3", type: "Live Stream", title: "Live product Q&A session",   platform: "YouTube",   likes: 18400, shares: 1100,  replies: 8200, sentiment: 0.72 },
+    { id: "ctp4", type: "Thread",      title: "Campaign story + user polls", platform: "Twitter/X", likes: 8200,  shares: 2400,  replies: 4800, sentiment: 0.61 },
+  ] as CampaignTopPostItem[],
+  campaignChannels: [
+    { id: "cc1", name: "Instagram", likes: 89200, replies: 21400, shares: 23800, posts: 48,  icon: "IG", color: "from-pink-400 to-rose-500" },
+    { id: "cc2", name: "TikTok",    likes: 74300, replies: 18600, shares: 25680, posts: 32,  icon: "TK", color: "from-slate-700 to-slate-900" },
+    { id: "cc3", name: "Twitter/X", likes: 14800, replies: 9240,  shares: 4100,  posts: 124, icon: "X",  color: "from-sky-400 to-blue-600" },
+    { id: "cc4", name: "YouTube",   likes: 22100, replies: 8900,  shares: 5720,  posts: 12,  icon: "YT", color: "from-red-400 to-red-600" },
+    { id: "cc5", name: "Facebook",  likes: 12400, replies: 4600,  shares: 4000,  posts: 56,  icon: "FB", color: "from-blue-500 to-indigo-600" },
+  ] as CampaignChannelItem[],
+  campaignCompetitors: [
+    { id: "ccmp1", brand: "Your Brand",   posts: 264, likes: 184200, replies: 41800, shares: 29600, sentiment: 0.76 },
+    { id: "ccmp2", brand: "Competitor A", posts: 198, likes: 152400, replies: 28900, shares: 21300, sentiment: 0.68 },
+    { id: "ccmp3", brand: "Competitor B", posts: 143, likes: 118700, replies: 34100, shares: 18900, sentiment: 0.72 },
+    { id: "ccmp4", brand: "Competitor C", posts: 310, likes: 87600,  replies: 19200, shares: 11400, sentiment: 0.59 },
+    { id: "ccmp5", brand: "Competitor D", posts: 97,  likes: 214500, replies: 52300, shares: 38100, sentiment: 0.81 },
+  ] as CampaignCompetitorItem[],
+  campaignRecommendations: [
+    { id: "cr1", priority: "high",   title: "Double down on TikTok Reels",             detail: "TikTok shows the highest engagement rate at 12.1%. Increase posting frequency from 2x to 4x per week and allocate an additional 10% of budget.", impact: "Est. +18% reach" },
+    { id: "cr2", priority: "high",   title: "Address negative price sentiment",         detail: "Price & Value theme has a 61% positive sentiment score - the lowest across all themes. Consider highlighting value propositions or limited-time offers.", impact: "Est. +9% sentiment" },
+    { id: "cr3", priority: "medium", title: "Reactivate paused YouTube campaign",       detail: "Product Launch - ProMax shows 0.55 sentiment. Refreshing the creative and relaunching could improve perception and recapture lost reach.", impact: "Est. +280K reach" },
+    { id: "cr4", priority: "medium", title: "Expand influencer collaboration",          detail: "The Influencer Collab Series has the highest engagement rate (15.3%). Partnering with 2-3 additional micro-influencers could amplify organic reach.", impact: "Est. +400K impressions" },
+    { id: "cr5", priority: "low",    title: "Repurpose top-performing content cross-platform", detail: "The TikTok 30-second campaign spot has 92K likes. Repurposing it for Instagram Reels and YouTube Shorts can extend its lifecycle at minimal cost.", impact: "Est. +150K engagements" },
+  ] as CampaignRecommendationItem[],
+
+  // ─── Outlet Analysis Defaults ────────────────────────────────────────────
+  outletStats: [
+    { id: "os1", label: "Total Outlets",     value: "124",   change: "+3",   positive: true,  description: "Total number of active outlets across all regions.",                                               icon: "Store" },
+    { id: "os2", label: "Avg. Satisfaction", value: "3.8",   change: "-0.2", positive: false, description: "Average customer satisfaction score (out of 5) across all outlets.",                              icon: "Star" },
+    { id: "os3", label: "Total Reviews",     value: "41.2K", change: "+18%", positive: true,  description: "Total customer reviews collected across all outlets.",                                             icon: "MessageSquare" },
+    { id: "os4", label: "Critical Outlets",  value: "9",     change: "+2",   positive: false, description: "Outlets with satisfaction scores below the critical threshold (< 3.0).",                          icon: "TrendingDown" },
+  ] as OutletStatItem[],
+  outletPriorityActions: [
+    { id: "opa1", priority: "high",   outlet: "Jakarta Flagship", region: "DKI Jakarta",  title: "Address wait time complaints urgently",          detail: "Wait time mentions spiked 45% in the last 48 hours. Negative reviews citing 'slow service' now account for 38% of all reviews for this outlet. Immediate staffing review recommended.", impact: "Est. +0.6 score" },
+    { id: "opa2", priority: "high",   outlet: "Medan Central",    region: "North Sumatra", title: "Investigate pricing & cleanliness issues",       detail: "Persistent complaints about overpriced items and facility hygiene. Sentiment dropped 22pts MoM. An on-site audit and price alignment with regional average is advised.", impact: "Est. +0.5 score" },
+    { id: "opa3", priority: "medium", outlet: "Surabaya East",    region: "East Java",     title: "Respond to product availability feedback",       detail: "Customers repeatedly mention out-of-stock items during peak hours. Aligning inventory reorder points with foot traffic data could reduce stockout complaints by ~60%.", impact: "Est. +0.3 score" },
+    { id: "opa4", priority: "medium", outlet: "Bandung Dago",     region: "West Java",     title: "Leverage high satisfaction as showcase outlet",  detail: "Scoring 4.6/5 — the highest in the network. Document service practices and replicate the SOP across the 8 underperforming outlets in West Java.", impact: "Network +0.2 avg" },
+    { id: "opa5", priority: "low",    outlet: "All Regions",      region: "National",      title: "Launch post-visit review reminder campaign",     detail: "Review collection rate is 12% below target. A simple SMS/WhatsApp prompt sent 2 hours after visit could increase review volume and provide better signal on emerging issues.", impact: "Est. +30% reviews" },
+  ] as OutletPriorityActionItem[],
+  outletMapData: [
+    { id: "o1",  name: "Jakarta Flagship",     region: "DKI Jakarta",    city: "Jakarta",    lat: -6.2088, lng: 106.8456, status: "critical", satisfaction: 2.6, reviews: 4820, issues: ["Long wait times", "Staff attitude", "Overcrowding"] },
+    { id: "o2",  name: "Jakarta Selatan",      region: "DKI Jakarta",    city: "Jakarta",    lat: -6.2615, lng: 106.8106, status: "warning",  satisfaction: 3.2, reviews: 2140, issues: ["Parking difficulty", "Limited seating"] },
+    { id: "o3",  name: "Bogor Sudirman",       region: "West Java",      city: "Bogor",      lat: -6.5971, lng: 106.8060, status: "good",     satisfaction: 4.1, reviews: 1380, issues: [] },
+    { id: "o4",  name: "Bandung Dago",         region: "West Java",      city: "Bandung",    lat: -6.8783, lng: 107.6100, status: "good",     satisfaction: 4.6, reviews: 3100, issues: [] },
+    { id: "o5",  name: "Bandung Buah Batu",    region: "West Java",      city: "Bandung",    lat: -6.9520, lng: 107.6450, status: "warning",  satisfaction: 3.4, reviews: 980,  issues: ["Product availability", "Wait times"] },
+    { id: "o6",  name: "Surabaya East",        region: "East Java",      city: "Surabaya",   lat: -7.2504, lng: 112.7688, status: "warning",  satisfaction: 3.1, reviews: 2620, issues: ["Stock-outs", "Inconsistent quality"] },
+    { id: "o7",  name: "Surabaya North",       region: "East Java",      city: "Surabaya",   lat: -7.2021, lng: 112.7363, status: "good",     satisfaction: 3.9, reviews: 1450, issues: [] },
+    { id: "o8",  name: "Malang Kota",          region: "East Java",      city: "Malang",     lat: -7.9797, lng: 112.6304, status: "good",     satisfaction: 4.2, reviews: 870,  issues: [] },
+    { id: "o9",  name: "Medan Central",        region: "North Sumatra",  city: "Medan",      lat: 3.5952,  lng: 98.6722,  status: "critical", satisfaction: 2.4, reviews: 3340, issues: ["Overpricing", "Cleanliness", "Poor service"] },
+    { id: "o10", name: "Medan Helvetia",       region: "North Sumatra",  city: "Medan",      lat: 3.6185,  lng: 98.6318,  status: "warning",  satisfaction: 3.0, reviews: 920,  issues: ["Limited menu", "Parking"] },
+    { id: "o11", name: "Palembang Ilir",       region: "South Sumatra",  city: "Palembang",  lat: -2.9761, lng: 104.7754, status: "good",     satisfaction: 4.0, reviews: 760,  issues: [] },
+    { id: "o12", name: "Makassar Panakkukang", region: "South Sulawesi", city: "Makassar",   lat: -5.1477, lng: 119.4327, status: "warning",  satisfaction: 3.3, reviews: 1140, issues: ["Delivery delays", "Temperature issues"] },
+    { id: "o13", name: "Makassar Tanjung",     region: "South Sulawesi", city: "Makassar",   lat: -5.1356, lng: 119.4066, status: "good",     satisfaction: 3.8, reviews: 680,  issues: [] },
+    { id: "o14", name: "Semarang Simpang",     region: "Central Java",   city: "Semarang",   lat: -6.9932, lng: 110.4203, status: "good",     satisfaction: 4.1, reviews: 1020, issues: [] },
+    { id: "o15", name: "Yogyakarta Malioboro", region: "DIY",            city: "Yogyakarta", lat: -7.7956, lng: 110.3695, status: "good",     satisfaction: 4.4, reviews: 2200, issues: [] },
+    { id: "o16", name: "Denpasar Kuta",        region: "Bali",           city: "Denpasar",   lat: -8.7190, lng: 115.1700, status: "good",     satisfaction: 4.3, reviews: 2840, issues: [] },
+    { id: "o17", name: "Denpasar Sanur",       region: "Bali",           city: "Denpasar",   lat: -8.7034, lng: 115.2607, status: "warning",  satisfaction: 3.5, reviews: 1120, issues: ["Tourist pricing complaints"] },
+    { id: "o18", name: "Balikpapan Centre",    region: "East Kalimantan",city: "Balikpapan", lat: -1.2675, lng: 116.8289, status: "critical", satisfaction: 2.8, reviews: 1460, issues: ["Staff shortage", "Supply chain delays"] },
+  ] as OutletMapDataItem[],
+  outletSentimentOverall: { positive: 62, neutral: 22, negative: 16 },
+  outletSentimentByOutlet: [
+    { id: "osbo1",  name: "Bandung Dago",           positive: 84, neutral: 12, negative: 4  },
+    { id: "osbo2",  name: "Yogyakarta Malioboro",   positive: 80, neutral: 13, negative: 7  },
+    { id: "osbo3",  name: "Denpasar Kuta",          positive: 77, neutral: 14, negative: 9  },
+    { id: "osbo4",  name: "Malang Kota",            positive: 74, neutral: 16, negative: 10 },
+    { id: "osbo5",  name: "Semarang Simpang",       positive: 70, neutral: 17, negative: 13 },
+    { id: "osbo6",  name: "Surabaya North",         positive: 65, neutral: 20, negative: 15 },
+    { id: "osbo7",  name: "Jakarta Selatan",        positive: 55, neutral: 22, negative: 23 },
+    { id: "osbo8",  name: "Surabaya East",          positive: 48, neutral: 24, negative: 28 },
+    { id: "osbo9",  name: "Balikpapan Centre",      positive: 38, neutral: 20, negative: 42 },
+    { id: "osbo10", name: "Medan Central",          positive: 29, neutral: 15, negative: 56 },
+    { id: "osbo11", name: "Jakarta Flagship",       positive: 26, neutral: 18, negative: 56 },
+  ] as OutletSentimentByOutletItem[],
+  outletTopics: [
+    { id: "ot1",  topic: "Service Speed",        mentions: 8420, positive: 44, negative: 42 },
+    { id: "ot2",  topic: "Product Quality",      mentions: 7680, positive: 75, negative: 12 },
+    { id: "ot3",  topic: "Cleanliness",          mentions: 5940, positive: 68, negative: 21 },
+    { id: "ot4",  topic: "Staff Friendliness",   mentions: 5120, positive: 72, negative: 16 },
+    { id: "ot5",  topic: "Pricing & Value",      mentions: 4880, positive: 38, negative: 48 },
+    { id: "ot6",  topic: "Product Availability", mentions: 3760, positive: 51, negative: 35 },
+    { id: "ot7",  topic: "Ambiance",             mentions: 3240, positive: 80, negative: 8  },
+    { id: "ot8",  topic: "Parking",              mentions: 2980, positive: 31, negative: 54 },
+    { id: "ot9",  topic: "Queue Management",     mentions: 2640, positive: 29, negative: 58 },
+    { id: "ot10", topic: "Promotions & Deals",   mentions: 2100, positive: 84, negative: 6  },
+  ] as OutletTopicItem[],
+  outletRecentReviews: [
+    { id: "orr1", outlet: "Jakarta Flagship",     sentiment: "negative", text: "Waited 40 minutes just for a drink. Staff seem overwhelmed and understaffed. Not coming back.", stars: 1 },
+    { id: "orr2", outlet: "Bandung Dago",         sentiment: "positive", text: "The best experience! Staff are warm, the atmosphere is cozy and the products taste amazing. 10/10.", stars: 5 },
+    { id: "orr3", outlet: "Medan Central",        sentiment: "negative", text: "Prices are way too high compared to other locations. The facility was not clean and service was dismissive.", stars: 2 },
+    { id: "orr4", outlet: "Yogyakarta Malioboro", sentiment: "positive", text: "Perfect spot right by Malioboro. Always consistent, quick service, and the staff remembered my order!", stars: 5 },
+    { id: "orr5", outlet: "Surabaya East",        sentiment: "neutral",  text: "Average experience. They were out of 3 menu items on a Saturday afternoon. Staff were polite though.", stars: 3 },
+    { id: "orr6", outlet: "Balikpapan Centre",    sentiment: "negative", text: "Took nearly an hour to serve us. Multiple tables left without ordering. Management needs to step in.", stars: 1 },
+  ] as OutletRecentReviewItem[],
 };
 
 const LEGACY_STORAGE_KEY = "naradai_dashboard_content";
@@ -352,6 +548,28 @@ export function loadDashboardContent(instanceId: string = "default"): DashboardC
       competitiveShareOfVoice: parsed.competitiveShareOfVoice ?? defaultDashboardContent.competitiveShareOfVoice,
       competitiveBrandLabels: parsed.competitiveBrandLabels ?? initial?.competitiveBrandLabels ?? defaultDashboardContent.competitiveBrandLabels,
       rawSourceContents: (Array.isArray(parsed.rawSourceContents) && parsed.rawSourceContents.length > 0 ? parsed.rawSourceContents : initial?.rawSourceContents) ?? defaultDashboardContent.rawSourceContents,
+      // Campaign Analysis
+      campaignStats: (Array.isArray(parsed.campaignStats) && parsed.campaignStats.length > 0 ? parsed.campaignStats : initial?.campaignStats) ?? defaultDashboardContent.campaignStats,
+      campaignPerformance: (Array.isArray(parsed.campaignPerformance) && parsed.campaignPerformance.length > 0 ? parsed.campaignPerformance : initial?.campaignPerformance) ?? defaultDashboardContent.campaignPerformance,
+      campaignTrendData: (Array.isArray(parsed.campaignTrendData) && parsed.campaignTrendData.length > 0 ? parsed.campaignTrendData : initial?.campaignTrendData) ?? defaultDashboardContent.campaignTrendData,
+      campaignTimeSeriesData: (Array.isArray(parsed.campaignTimeSeriesData) && parsed.campaignTimeSeriesData.length > 0 ? parsed.campaignTimeSeriesData : initial?.campaignTimeSeriesData) ?? defaultDashboardContent.campaignTimeSeriesData,
+      campaignPostPublishEvents: (Array.isArray(parsed.campaignPostPublishEvents) && parsed.campaignPostPublishEvents.length > 0 ? parsed.campaignPostPublishEvents : initial?.campaignPostPublishEvents) ?? defaultDashboardContent.campaignPostPublishEvents,
+      campaignKeyEvents: (Array.isArray(parsed.campaignKeyEvents) && parsed.campaignKeyEvents.length > 0 ? parsed.campaignKeyEvents : initial?.campaignKeyEvents) ?? defaultDashboardContent.campaignKeyEvents,
+      campaignReplySentiment: parsed.campaignReplySentiment ?? initial?.campaignReplySentiment ?? defaultDashboardContent.campaignReplySentiment,
+      campaignReplyTopics: (Array.isArray(parsed.campaignReplyTopics) && parsed.campaignReplyTopics.length > 0 ? parsed.campaignReplyTopics : initial?.campaignReplyTopics) ?? defaultDashboardContent.campaignReplyTopics,
+      campaignContentTypes: (Array.isArray(parsed.campaignContentTypes) && parsed.campaignContentTypes.length > 0 ? parsed.campaignContentTypes : initial?.campaignContentTypes) ?? defaultDashboardContent.campaignContentTypes,
+      campaignTopPosts: (Array.isArray(parsed.campaignTopPosts) && parsed.campaignTopPosts.length > 0 ? parsed.campaignTopPosts : initial?.campaignTopPosts) ?? defaultDashboardContent.campaignTopPosts,
+      campaignChannels: (Array.isArray(parsed.campaignChannels) && parsed.campaignChannels.length > 0 ? parsed.campaignChannels : initial?.campaignChannels) ?? defaultDashboardContent.campaignChannels,
+      campaignCompetitors: (Array.isArray(parsed.campaignCompetitors) && parsed.campaignCompetitors.length > 0 ? parsed.campaignCompetitors : initial?.campaignCompetitors) ?? defaultDashboardContent.campaignCompetitors,
+      campaignRecommendations: (Array.isArray(parsed.campaignRecommendations) && parsed.campaignRecommendations.length > 0 ? parsed.campaignRecommendations : initial?.campaignRecommendations) ?? defaultDashboardContent.campaignRecommendations,
+      // Outlet Analysis
+      outletStats: (Array.isArray(parsed.outletStats) && parsed.outletStats.length > 0 ? parsed.outletStats : initial?.outletStats) ?? defaultDashboardContent.outletStats,
+      outletPriorityActions: (Array.isArray(parsed.outletPriorityActions) && parsed.outletPriorityActions.length > 0 ? parsed.outletPriorityActions : initial?.outletPriorityActions) ?? defaultDashboardContent.outletPriorityActions,
+      outletMapData: (Array.isArray(parsed.outletMapData) && parsed.outletMapData.length > 0 ? parsed.outletMapData : initial?.outletMapData) ?? defaultDashboardContent.outletMapData,
+      outletSentimentOverall: parsed.outletSentimentOverall ?? initial?.outletSentimentOverall ?? defaultDashboardContent.outletSentimentOverall,
+      outletSentimentByOutlet: (Array.isArray(parsed.outletSentimentByOutlet) && parsed.outletSentimentByOutlet.length > 0 ? parsed.outletSentimentByOutlet : initial?.outletSentimentByOutlet) ?? defaultDashboardContent.outletSentimentByOutlet,
+      outletTopics: (Array.isArray(parsed.outletTopics) && parsed.outletTopics.length > 0 ? parsed.outletTopics : initial?.outletTopics) ?? defaultDashboardContent.outletTopics,
+      outletRecentReviews: (Array.isArray(parsed.outletRecentReviews) && parsed.outletRecentReviews.length > 0 ? parsed.outletRecentReviews : initial?.outletRecentReviews) ?? defaultDashboardContent.outletRecentReviews,
     };
   } catch {
     return defaultDashboardContent;
@@ -366,6 +584,21 @@ export function deleteDashboardContent(instanceId: string): void {
   const key = getStorageKey(instanceId);
   localStorage.removeItem(key);
   console.log(`✅ Dashboard content deleted for instance: ${instanceId}`);
+}
+
+/** Hapus seluruh data semua instance dari localStorage. */
+export function clearAllDashboardContent(): string[] {
+  const removed: string[] = [];
+  const keysToRemove: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith(STORAGE_KEY_PREFIX)) keysToRemove.push(k);
+  }
+  keysToRemove.forEach((k) => {
+    localStorage.removeItem(k);
+    removed.push(k);
+  });
+  return removed;
 }
 
 export function generateId(): string {

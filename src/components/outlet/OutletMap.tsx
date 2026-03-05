@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Map as MapIcon, AlertCircle } from "lucide-react";
+import { useDashboardContent } from "@/contexts/DashboardContentContext";
+import { defaultDashboardContent } from "@/lib/dashboard-content-store";
 
 export interface OutletData {
   id: string;
@@ -157,9 +159,27 @@ function OutletMapLeaflet({ outlets }: { outlets: OutletData[] }) {
 }
 
 export function OutletMap() {
-  const critical = OUTLETS.filter((o) => o.status === "critical");
-  const warning  = OUTLETS.filter((o) => o.status === "warning");
-  const good     = OUTLETS.filter((o) => o.status === "good");
+  const content = useDashboardContent();
+  const outletMapData = content?.outletMapData ?? defaultDashboardContent.outletMapData ?? [];
+  // Merge with OUTLETS to keep backward compatibility — prefer context data
+  const outlets: OutletData[] = outletMapData.length > 0
+    ? outletMapData.map((o) => ({
+        id: o.id,
+        name: o.name,
+        region: o.region,
+        city: o.city,
+        lat: o.lat,
+        lng: o.lng,
+        status: o.status,
+        satisfaction: o.satisfaction,
+        reviews: o.reviews,
+        issues: o.issues,
+      }))
+    : OUTLETS;
+
+  const critical = outlets.filter((o) => o.status === "critical");
+  const warning  = outlets.filter((o) => o.status === "warning");
+  const good     = outlets.filter((o) => o.status === "good");
 
   return (
     <div id="outlet-map" className="space-y-5">
@@ -178,7 +198,7 @@ export function OutletMap() {
         <div className="lg:col-span-3 bg-white rounded-2xl border border-slate-200 shadow-sm p-5 relative overflow-hidden">
           <div className="absolute inset-0 opacity-[0.02] pointer-events-none bg-[radial-gradient(#4f46e5_1px,transparent_1px)] [background-size:24px_24px]" />
           <div className="relative" style={{ height: MAP_HEIGHT }}>
-            <OutletMapLeaflet outlets={OUTLETS} />
+            <OutletMapLeaflet outlets={outlets} />
           </div>
           {/* Legend */}
           <div className="absolute bottom-7 left-7 z-[1000]">
@@ -204,37 +224,52 @@ export function OutletMap() {
           <div className="flex items-center gap-2 mb-5 opacity-70">
             <AlertCircle className="w-4 h-4" />
             <span className="text-[10px] font-bold uppercase tracking-widest">
-              Critical Alerts ({critical.length})
+              Alerts ({critical.length + warning.length})
             </span>
           </div>
           <div className="flex-1 space-y-6 overflow-y-auto pr-1">
-            {critical.map((outlet) => (
-              <div key={outlet.id} className="group">
-                <div className="flex items-center justify-between mb-1.5">
-                  <h3 className="text-base font-bold group-hover:text-red-400 transition-colors leading-tight">{outlet.name}</h3>
-                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30 uppercase whitespace-nowrap ml-2">
-                    {outlet.city}
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-2 mb-3">
-                  <div className="p-2.5 rounded-xl bg-white/5 border border-white/10">
-                    <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1">Satisfaction</p>
-                    <p className="text-sm font-bold text-red-400">{outlet.satisfaction.toFixed(1)}/5</p>
+            {[...critical, ...warning].length === 0 ? (
+              <p className="text-xs text-slate-500 text-center mt-4">Tidak ada alert saat ini.</p>
+            ) : (
+              [...critical, ...warning].map((outlet) => {
+                const isCritical = outlet.status === "critical";
+                const accent     = isCritical ? "text-red-400"   : "text-amber-400";
+                const badge      = isCritical
+                  ? "bg-red-500/20 text-red-400 border-red-500/30"
+                  : "bg-amber-500/20 text-amber-400 border-amber-500/30";
+                const statusLabel = isCritical ? "Critical" : "Warning";
+                return (
+                  <div key={outlet.id} className="group">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <h3 className={`text-sm font-bold transition-colors leading-tight ${accent}`}>{outlet.name}</h3>
+                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase whitespace-nowrap ml-2 ${badge}`}>
+                        {statusLabel}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-500 mb-2">{outlet.city} · {outlet.region}</p>
+                    <div className="grid grid-cols-2 gap-2 mb-3">
+                      <div className="p-2.5 rounded-xl bg-white/5 border border-white/10">
+                        <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1">Satisfaction</p>
+                        <p className={`text-sm font-bold ${accent}`}>{outlet.satisfaction.toFixed(2)}</p>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-white/5 border border-white/10">
+                        <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1">Reviews</p>
+                        <p className="text-sm font-bold text-slate-300">{outlet.reviews.toLocaleString()}</p>
+                      </div>
+                    </div>
+                    {outlet.issues.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {outlet.issues.map((issue, i) => (
+                          <span key={i} className="text-[10px] px-2 py-0.5 rounded-md bg-white/5 text-slate-400 font-medium border border-white/5">
+                            {issue}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                  <div className="p-2.5 rounded-xl bg-white/5 border border-white/10">
-                    <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mb-1">Reviews</p>
-                    <p className="text-sm font-bold text-slate-300">{outlet.reviews.toLocaleString()}</p>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {outlet.issues.map((issue, i) => (
-                    <span key={i} className="text-[10px] px-2 py-0.5 rounded-md bg-white/5 text-slate-400 font-medium border border-white/5">
-                      {issue}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))}
+                );
+              })
+            )}
           </div>
           <button className="w-full mt-6 py-2.5 rounded-xl bg-white text-slate-900 font-bold text-xs transition-all hover:bg-slate-100 hover:scale-[1.02] active:scale-[0.98]">
             View All Alerts

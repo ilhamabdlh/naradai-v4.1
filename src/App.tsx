@@ -72,15 +72,11 @@ function AppContent() {
   }, [currentInstanceId, defaultInstanceId, allowedInstanceIds]);
 
   useEffect(() => {
-    if (currentPage === "brand-analysis" || currentPage === "source-contents") {
-      const content = loadDashboardContent(currentInstanceId);
-      if (currentPage === "brand-analysis") {
-        setFeatureVisibility(content.featureVisibility ?? defaultFeatureVisibility);
-      }
-      setDashboardContent(content);
-    } else {
-      setDashboardContent(null);
+    const content = loadDashboardContent(currentInstanceId);
+    if (currentPage === "brand-analysis") {
+      setFeatureVisibility(content.featureVisibility ?? defaultFeatureVisibility);
     }
+    setDashboardContent(content);
   }, [currentPage, currentInstanceId]);
 
   const handleInstanceChange = (instanceId: string) => {
@@ -122,12 +118,18 @@ function AppContent() {
                   {featureVisibility.recentInsights && <RecentInsights />}
                 </DashboardContentProvider>
               ) : currentPage === "campaign-analysis" ? (
-                <CampaignAnalysis />
+                <DashboardContentProvider content={dashboardContent}>
+                  <CampaignAnalysis />
+                </DashboardContentProvider>
               ) : currentPage === "outlet-analysis" ? (
-                <OutletAnalysis />
-                ) : (
+                <DashboardContentProvider content={dashboardContent}>
+                  <OutletAnalysis />
+                </DashboardContentProvider>
+              ) : (
+                <DashboardContentProvider content={dashboardContent}>
                   <SourceContents instanceId={currentInstanceId} />
-                )}
+                </DashboardContentProvider>
+              )}
             </main>
           </div>
         </div>

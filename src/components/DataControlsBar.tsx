@@ -7,11 +7,10 @@ import {
 } from "@/contexts/DataFilterContext";
 
 const CAMPAIGNS = [
-  { id: "goodday_babymonster_jan26", name: "GoodDay x BabyMonster — Jan 2026" },
-  { id: "goodday_summer_feb26",      name: "GoodDay Summer Vibes — Feb 2026"  },
-  { id: "kapalapi_ramadan_mar26",    name: "Kapal API Ramadan — Mar 2026"      },
-  { id: "kopi_abc_relaunch_q1",      name: "Kopi ABC Re-launch — Q1 2026"     },
-  { id: "excelso_collab_feb26",      name: "Excelso Creator Collab — Feb 2026" },
+  { id: "brand_core_ig",        name: "Brand Core - Bening's IG"       },
+  { id: "brand_core_tiktok",    name: "Brand Core - Bening's TikTok"   },
+  { id: "brand_issue_twitter",  name: "Bening's Brand & Issue"         },
+  { id: "outlet_review_gmaps",  name: "Outlet Review & Sentiment"      },
 ];
 
 interface DataControlsBarProps {

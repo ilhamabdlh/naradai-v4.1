@@ -6,7 +6,7 @@ import type { ShareOfPlatformRow, ShareOfPlatformValue } from "@/lib/dashboard-c
 
 type Granularity = "daily" | "weekly" | "monthly";
 
-const PLATFORM_KEYS = ["twitter", "instagram", "facebook", "tiktok", "googleplay", "appstore"] as const;
+const PLATFORM_KEYS = ["twitter", "instagram", "facebook", "tiktok", "googlemaps", "googleplay", "appstore"] as const;
 
 const MONTH_SHORT_SOP: Record<number, string> = {
   0: "Jan", 1: "Feb", 2: "Mar", 3: "Apr", 4: "May", 5: "Jun",
@@ -35,7 +35,7 @@ function normalizeShareRow(row: ShareOfPlatformRow): Record<string, number | str
   return out;
 }
 
-type ChartRow = { date: string; twitter: number; instagram: number; facebook: number; tiktok: number; googleplay: number; appstore: number; [k: string]: number | string };
+type ChartRow = { date: string; twitter: number; instagram: number; facebook: number; tiktok: number; googlemaps: number; googleplay: number; appstore: number; [k: string]: number | string };
 
 function aggregateShareOfPlatformData(
   items: ChartRow[],
@@ -57,6 +57,7 @@ function aggregateShareOfPlatformData(
     instagram: 0,
     facebook: 0,
     tiktok: 0,
+    googlemaps: 0,
     googleplay: 0,
     appstore: 0,
   });
@@ -188,7 +189,8 @@ const platformColors: Record<string, string> = {
   twitter: "#1DA1F2",
   instagram: "#E1306C",
   facebook: "#6B7280",
-  tiktok: "#000000",
+  tiktok: "#010101",
+  googlemaps: "#4285F4",
   googleplay: "#34A853",
   appstore: "#8B5CF6",
 };
@@ -198,6 +200,7 @@ const platformLabels: Record<string, string> = {
   instagram: "Instagram",
   facebook: "Facebook",
   tiktok: "TikTok",
+  googlemaps: "Google Maps",
   googleplay: "Google Play",
   appstore: "App Store",
 };
@@ -207,17 +210,22 @@ export function ShareOfPlatform() {
   const [granularity, setGranularity] = useState<Granularity>("daily");
   const storeData = content?.whatsHappeningShareOfPlatform ?? [];
 
-  const data = useMemo(() => {
-    if (storeData.length > 0) {
-      const normalized = (storeData as ShareOfPlatformRow[]).map(normalizeShareRow) as ChartRow[];
-      const allDates = normalized.map((i) => i.date);
-      const aggregated = aggregateShareOfPlatformData(normalized, granularity, allDates);
-      return convertRowsToPercent(aggregated);
+  const { data, activePlatformKeys } = useMemo(() => {
+    const sourceRows = storeData.length > 0
+      ? (storeData as ShareOfPlatformRow[]).map(normalizeShareRow) as ChartRow[]
+      : dataByGranularity["daily"];
+
+    // Hitung total per platform untuk menentukan platform mana yang aktif
+    const totals: Record<string, number> = {};
+    for (const key of PLATFORM_KEYS) {
+      totals[key] = sourceRows.reduce((sum, row) => sum + ((row[key] as number) || 0), 0);
     }
-    const fallback = dataByGranularity[granularity];
-    const allDates = fallback.map((i) => i.date);
-    const aggregated = aggregateShareOfPlatformData(fallback, granularity, allDates);
-    return convertRowsToPercent(aggregated);
+    const active = PLATFORM_KEYS.filter((k) => totals[k] > 0);
+
+    const allDates = sourceRows.map((i) => i.date);
+    const aggregated = aggregateShareOfPlatformData(sourceRows, granularity, allDates);
+    const converted = convertRowsToPercent(aggregated);
+    return { data: converted, activePlatformKeys: active };
   }, [storeData, granularity]);
 
   return (
@@ -266,7 +274,7 @@ export function ShareOfPlatform() {
             content={({ active, payload, label }) => {
               if (!active || !payload || !payload.length) return null;
               const filteredPayload = payload.filter((entry: { dataKey?: string }) =>
-                PLATFORM_KEYS.includes(entry.dataKey as typeof PLATFORM_KEYS[number])
+                activePlatformKeys.includes(entry.dataKey as typeof PLATFORM_KEYS[number])
               );
               const total = filteredPayload.reduce((sum: number, entry: { value?: number }) => sum + (entry.value || 0), 0);
               const row = payload[0]?.payload as Record<string, number | string> | undefined;
@@ -309,7 +317,7 @@ export function ShareOfPlatform() {
           <Legend
             content={() => (
               <div className="flex flex-wrap items-center justify-center gap-4 pt-2" style={{ paddingTop: 8 }}>
-                {PLATFORM_KEYS.map((key) => (
+                {activePlatformKeys.map((key) => (
                   <div key={key} className="flex items-center gap-1.5">
                     <span
                       className="inline-block rounded-full"
@@ -321,13 +329,13 @@ export function ShareOfPlatform() {
               </div>
             )}
           />
-          {PLATFORM_KEYS.map((key, i) => (
+          {activePlatformKeys.map((key, i) => (
             <Bar
               key={key}
               dataKey={key}
               stackId="a"
               fill={platformColors[key]}
-              radius={i === PLATFORM_KEYS.length - 1 ? [4, 4, 0, 0] : 0}
+              radius={i === activePlatformKeys.length - 1 ? [4, 4, 0, 0] : 0}
             />
           ))}
         </BarChart>
