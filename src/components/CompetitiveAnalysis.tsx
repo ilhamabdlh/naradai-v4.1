@@ -299,7 +299,7 @@ export function CompetitiveAnalysis() {
   const companies = heatmapBrands;
 
   type Granularity = "daily" | "weekly" | "monthly";
-  const [sovGranularity, setSovGranularity] = useState<Granularity>("weekly");
+  const [sovGranularity, setSovGranularity] = useState<Granularity>("daily");
 
   const sovDaily = [
     { date: "Jan 1", yourBrand: 250, competitorA: 210, competitorB: 180, competitorC: 200, competitorD: 190 },
@@ -365,8 +365,9 @@ export function CompetitiveAnalysis() {
   };
 
   const shareOfVoiceFromContent = content?.competitiveShareOfVoice ?? [];
-  const shareOfVoiceData = shareOfVoiceFromContent.length > 0 ? shareOfVoiceFromContent : sovDataByGranularity[sovGranularity];
-  
+  const shareOfVoiceData =
+    shareOfVoiceFromContent.length > 0 ? shareOfVoiceFromContent : sovDataByGranularity[sovGranularity];
+ 
   // Deteksi brand keys dinamis dari data SOV (semua key selain "date")
   const sovBrandKeys = useMemo(() => {
     if (shareOfVoiceFromContent.length > 0) {
@@ -387,6 +388,28 @@ export function CompetitiveAnalysis() {
     }
     return ["yourBrand", "competitorA", "competitorB", "competitorC"];
   }, [shareOfVoiceFromContent, brandLabels]);
+
+  // Normalisasi data SOV per tanggal menjadi persentase (agar setiap bar penuh 100%)
+  const shareOfVoiceChartData = useMemo(() => {
+    if (!shareOfVoiceData || shareOfVoiceData.length === 0) return [];
+    return shareOfVoiceData.map((row) => {
+      const out: Record<string, number | string> = { ...row };
+      const total = sovBrandKeys.reduce((sum, key) => {
+        const raw = (row as any)[key];
+        const num = typeof raw === "number" ? raw : Number(raw) || 0;
+        return sum + num;
+      }, 0);
+      sovBrandKeys.forEach((key) => {
+        const raw = (row as any)[key];
+        const mentions = typeof raw === "number" ? raw : Number(raw) || 0;
+        (out as any)[`${key}Mention`] = mentions;
+        const pctNum = total > 0 ? (mentions / total) * 100 : 0;
+        out[key] = pctNum;
+        (out as any)[`${key}Pct`] = `${pctNum.toFixed(1)}%`;
+      });
+      return out;
+    });
+  }, [shareOfVoiceData, sovBrandKeys]);
 
   // Labels = identity (brand name langsung sebagai key)
   const sovLabels: Record<string, string> = useMemo(() => {
@@ -1006,27 +1029,25 @@ export function CompetitiveAnalysis() {
                 <p className="text-xs text-slate-600">Historical number of conversations, broken down by brand</p>
               </div>
             </div>
-            {shareOfVoiceFromContent.length === 0 && (
-              <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
-                {(["daily", "weekly", "monthly"] as Granularity[]).map((g) => (
-                  <button
-                    key={g}
-                    onClick={() => setSovGranularity(g)}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-                      sovGranularity === g
-                        ? "bg-white text-violet-700 shadow-sm"
-                        : "text-slate-500 hover:text-slate-700"
-                    }`}
-                  >
-                    {g.charAt(0).toUpperCase() + g.slice(1)}
-                  </button>
-                ))}
-              </div>
-            )}
+            <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+              {(["daily", "weekly", "monthly"] as Granularity[]).map((g) => (
+                <button
+                  key={g}
+                  onClick={() => setSovGranularity(g)}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                    sovGranularity === g
+                      ? "bg-white text-violet-700 shadow-sm"
+                      : "text-slate-500 hover:text-slate-700"
+                  }`}
+                >
+                  {g.charAt(0).toUpperCase() + g.slice(1)}
+                </button>
+              ))}
+            </div>
           </div>
 
           <ResponsiveContainer width="100%" height={400}>
-            <BarChart data={shareOfVoiceData} margin={{ top: 10, right: 20, bottom: 20, left: 20 }}>
+          <BarChart data={shareOfVoiceChartData} margin={{ top: 10, right: 20, bottom: 20, left: 20 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
                 <XAxis
                   dataKey="date"
@@ -1039,9 +1060,9 @@ export function CompetitiveAnalysis() {
               tick={{ fontSize: 11, fill: '#64748b' }}
               axisLine={false}
               tickLine={false}
-              tickFormatter={(v) => v.toLocaleString()}
+              tickFormatter={(v) => (typeof v === "number" && v.toFixed ? v.toFixed(0) : v)}
               label={{
-                value: 'Conversations',
+                value: 'Share (%)',
                 angle: -90,
                 position: 'insideLeft',
                 offset: -5,
@@ -1052,12 +1073,26 @@ export function CompetitiveAnalysis() {
                 content={({ active, payload, label }) => {
                   if (!active || !payload || !payload.length) return null;
                   const total = payload.reduce((sum: number, entry: any) => sum + (entry.value || 0), 0);
+                  const row = payload[0]?.payload as Record<string, number | string> | undefined;
+                  const totalMentions = sovBrandKeys.reduce((sum, key) => {
+                    const v = row?.[`${key}Mention`];
+                    return sum + (typeof v === "number" ? v : 0);
+                  }, 0);
                   return (
                     <div className="bg-white border-2 border-slate-200 rounded-xl p-3 shadow-xl">
                       <p className="font-semibold text-slate-900 mb-2 text-sm">{label}</p>
                       <div className="space-y-1.5">
                         {payload.map((entry: any, idx: number) => {
-                          const pct = total > 0 ? ((entry.value / total) * 100).toFixed(1) : '0.0';
+                          const key = entry.dataKey as string;
+                          const mentionFromRow = row?.[`${key}Mention`];
+                          const mentions = typeof mentionFromRow === "number" ? mentionFromRow : 0;
+                          const pctFromRow = row?.[`${key}Pct`];
+                          const pct =
+                            typeof pctFromRow === "string" && pctFromRow
+                              ? pctFromRow
+                              : total > 0
+                                ? `${((entry.value || 0) / total * 100).toFixed(1)}%`
+                                : "0%";
                           return (
                             <div key={idx} className="flex items-center justify-between gap-4 text-xs">
                               <div className="flex items-center gap-1.5">
@@ -1065,15 +1100,15 @@ export function CompetitiveAnalysis() {
                                 <span className="text-slate-600">{sovLabels[entry.dataKey] || entry.dataKey}</span>
                               </div>
                               <span className="font-semibold text-slate-900">
-                                {entry.value.toLocaleString()} <span className="text-slate-500 font-normal">({pct}%)</span>
+                                {mentions.toLocaleString()} <span className="text-slate-500 font-normal">({pct})</span>
                               </span>
                             </div>
                           );
                         })}
                       </div>
                       <div className="border-t border-slate-200 mt-2 pt-2 flex items-center justify-between text-xs">
-                        <span className="text-slate-600 font-medium">Total</span>
-                        <span className="font-semibold text-slate-900">{total.toLocaleString()}</span>
+                        <span className="text-slate-600 font-medium">Total Conversations</span>
+                        <span className="font-semibold text-slate-900">{totalMentions.toLocaleString()}</span>
                       </div>
                     </div>
                   );
