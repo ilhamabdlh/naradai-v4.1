@@ -512,7 +512,17 @@ export function loadDashboardContent(instanceId: string = "default"): DashboardC
       opportunities: parsed.opportunities ?? defaultDashboardContent.opportunities,
       competitiveIssues: parsed.competitiveIssues ?? defaultDashboardContent.competitiveIssues,
       competitiveKeyInsights: parsed.competitiveKeyInsights ?? defaultDashboardContent.competitiveKeyInsights,
-      whatsHappeningSentimentTrends: parsed.whatsHappeningSentimentTrends ?? defaultDashboardContent.whatsHappeningSentimentTrends,
+      whatsHappeningSentimentTrends: (() => {
+        const cached  = parsed.whatsHappeningSentimentTrends;
+        const fromInit = initial?.whatsHappeningSentimentTrends;
+        // Prefer initial data when it has more entries (i.e. date range was extended)
+        if (Array.isArray(fromInit) && fromInit.length > 0 &&
+            (!Array.isArray(cached) || cached.length < fromInit.length)) {
+          return fromInit;
+        }
+        return (Array.isArray(cached) && cached.length > 0 ? cached : fromInit)
+          ?? defaultDashboardContent.whatsHappeningSentimentTrends;
+      })(),
       whatsHappeningKeyEvents: parsed.whatsHappeningKeyEvents ?? defaultDashboardContent.whatsHappeningKeyEvents,
       whatsHappeningTopTopics: parsed.whatsHappeningTopTopics ?? defaultDashboardContent.whatsHappeningTopTopics,
       whatsHappeningAITopicAnalysis: parsed.whatsHappeningAITopicAnalysis ?? defaultDashboardContent.whatsHappeningAITopicAnalysis,
