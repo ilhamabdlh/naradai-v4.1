@@ -6250,7 +6250,10 @@ function buildBeningsCampaignInitial(d: DashboardContentStore): DashboardContent
 }
 
 export function getInitialDashboardContentForInstance(instanceId: string, defaultContent: DashboardContentStore): DashboardContentStore | null {
-  if (instanceId === "benings_brand_analysis_01_2026") return buildBeningsInitial(defaultContent);
+  if (instanceId === "benings_brand_analysis_01_2026") {
+    // Brand analysis instance Benings juga memakai dataset Campaign Analysis terbaru
+    return buildBeningsCampaignInitial(buildBeningsInitial(defaultContent));
+  }
   if (instanceId === "benings_campaign_analysis_01_2026") return buildBeningsCampaignInitial(defaultContent);
   if (instanceId === "bukalapak") return buildBukalapakInitial(defaultContent);
   if (instanceId === "kapal_api_12_19_feb_2026") return buildKapalApiInitial(defaultContent);

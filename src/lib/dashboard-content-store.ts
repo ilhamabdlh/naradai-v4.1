@@ -498,10 +498,15 @@ export function loadDashboardContent(instanceId: string = "default"): DashboardC
 
     const whatsHappeningShareOfPlatform =
       (!isLegacyBukalapakShareOfPlatform &&
-      Array.isArray(parsedShareOfPlatform) &&
-      parsedShareOfPlatform.length > 0
-        ? parsedShareOfPlatform
-        : initialShareOfPlatform) ?? defaultDashboardContent.whatsHappeningShareOfPlatform;
+      // Prefer initial data when it has more entries (i.e. date range was extended)
+      Array.isArray(initialShareOfPlatform) &&
+      initialShareOfPlatform.length > 0 &&
+      (!Array.isArray(parsedShareOfPlatform) ||
+        parsedShareOfPlatform.length < initialShareOfPlatform.length)
+        ? initialShareOfPlatform
+        : Array.isArray(parsedShareOfPlatform) && parsedShareOfPlatform.length > 0
+          ? parsedShareOfPlatform
+          : initialShareOfPlatform) ?? defaultDashboardContent.whatsHappeningShareOfPlatform;
 
     return {
       featureVisibility: parsed.featureVisibility ?? defaultDashboardContent.featureVisibility,
