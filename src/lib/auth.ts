@@ -38,7 +38,11 @@ const DEMO_USERS: Record<
   admin_benings: {
     password: "benings2026",
     displayName: "Admin Benings",
-    allowedInstanceIds: ["benings_brand_analysis_01_2026"],
+    allowedInstanceIds: [
+      "benings_brand_analysis_01_2026",
+      "benings_campaign_beningsindonesia_tracker",
+      "benings_campaign_lockyourbright_tracker",
+    ],
   },
 };
 

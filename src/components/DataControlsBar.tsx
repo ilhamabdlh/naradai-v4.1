@@ -7,10 +7,8 @@ import {
 } from "@/contexts/DataFilterContext";
 
 const CAMPAIGNS = [
-  { id: "brand_core_ig",        name: "Brand Core - Bening's IG"       },
-  { id: "brand_core_tiktok",    name: "Brand Core - Bening's TikTok"   },
-  { id: "brand_issue_twitter",  name: "Bening's Brand & Issue"         },
-  { id: "outlet_review_gmaps",  name: "Outlet Review & Sentiment"      },
+  { id: "benings_campaign_beningsindonesia_tracker", name: "#beningsindonesia" },
+  { id: "benings_campaign_lockyourbright_tracker",   name: "#lockyourbright"   },
 ];
 
 interface DataControlsBarProps {
@@ -43,8 +41,14 @@ export function DataControlsBar({ variant = "default" }: DataControlsBarProps) {
               <label className="text-xs text-slate-500 shrink-0">Campaign</label>
               <div className="relative min-w-[260px]">
                 <select
-                  value={pendingFilter.projectId}
-                  onChange={(e) => setPendingProject(e.target.value)}
+                  value={
+                    CAMPAIGNS.some((c) => c.id === pendingFilter.projectId)
+                      ? pendingFilter.projectId
+                      : CAMPAIGNS[0]?.id ?? ""
+                  }
+                  onChange={(e) => {
+                    setPendingProject(e.target.value);
+                  }}
                   className="w-full appearance-none rounded-lg border border-slate-200 bg-white px-3 py-1.5 pr-8 text-sm font-medium text-slate-800 cursor-pointer hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400 transition-colors"
                 >
                   {CAMPAIGNS.map((c) => (
@@ -67,11 +71,13 @@ export function DataControlsBar({ variant = "default" }: DataControlsBarProps) {
                     onChange={(e) => setPendingProject(e.target.value)}
                     className="w-full appearance-none rounded-lg border border-slate-200 bg-white px-3 py-1.5 pr-8 text-sm font-medium text-slate-800 cursor-pointer hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400 transition-colors"
                   >
-                    {INSTANCES.map((inst) => (
-                      <option key={inst.id} value={inst.id}>
-                        {inst.name}
-                      </option>
-                    ))}
+                    {INSTANCES.filter((inst) => !inst.id.startsWith("benings_campaign_")).map(
+                      (inst) => (
+                        <option key={inst.id} value={inst.id}>
+                          {inst.name}
+                        </option>
+                      )
+                    )}
                   </select>
                   <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
                 </div>

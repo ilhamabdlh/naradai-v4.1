@@ -14,13 +14,13 @@ import { CampaignNavSidebar } from "./components/campaign/CampaignNavSidebar";
 import { OutletNavSidebar } from "./components/outlet/OutletNavSidebar";
 import { ProjectConfig } from "./components/ProjectConfig";
 import { LoginPage } from "./components/LoginPage";
-import { DataFilterProvider } from "./contexts/DataFilterContext";
+import { DataFilterProvider, useDataFilter } from "./contexts/DataFilterContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import HoverReceiver from "@/visual-edits/VisualEditsMessenger";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { INSTANCES } from "@/lib/instances";
+import { INSTANCES, CAMPAIGN_INSTANCE_IDS, isCampaignInstanceId } from "@/lib/instances";
 import { loadDashboardContent } from "@/lib/dashboard-content-store";
 import { defaultFeatureVisibility, type FeatureVisibility } from "@/lib/dashboard-content-types";
 import { DashboardContentProvider } from "@/contexts/DashboardContentContext";
@@ -46,6 +46,84 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+/** Di-render di dalam DataFilterProvider agar useDataFilter() benar-benar dapat appliedFilter. */
+function AppContentInner({
+  currentPage,
+  setCurrentPage,
+  currentInstanceId,
+  onInstanceChange,
+  defaultInstanceId,
+  allowedInstanceIds,
+}: {
+  currentPage: "brand-analysis" | "campaign-analysis" | "outlet-analysis" | "source-contents";
+  setCurrentPage: (p: "brand-analysis" | "campaign-analysis" | "outlet-analysis" | "source-contents") => void;
+  currentInstanceId: string;
+  onInstanceChange: (id: string) => void;
+  defaultInstanceId: string;
+  allowedInstanceIds: string[];
+}) {
+  const { appliedFilter } = useDataFilter();
+  const [featureVisibility, setFeatureVisibility] = useState<FeatureVisibility>(defaultFeatureVisibility);
+  const [dashboardContent, setDashboardContent] = useState<ReturnType<typeof loadDashboardContent> | null>(null);
+
+  const effectiveInstanceId =
+    currentPage === "campaign-analysis"
+      ? isCampaignInstanceId(appliedFilter.projectId)
+        ? appliedFilter.projectId
+        : CAMPAIGN_INSTANCE_IDS[0] ?? currentInstanceId
+      : currentInstanceId;
+
+  useEffect(() => {
+    const content = loadDashboardContent(effectiveInstanceId);
+    if (currentPage === "brand-analysis") {
+      setFeatureVisibility(content.featureVisibility ?? defaultFeatureVisibility);
+    }
+    setDashboardContent(content);
+  }, [currentPage, currentInstanceId, effectiveInstanceId]);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
+      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-violet-100/40 via-transparent to-transparent pointer-events-none" />
+      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-cyan-100/40 via-transparent to-transparent pointer-events-none" />
+      <div className="relative">
+        <Header currentPage={currentPage} onNavigate={setCurrentPage} />
+        <DataControlsBar
+          variant={currentPage === "campaign-analysis" ? "campaign" : "default"}
+        />
+        <div className="flex">
+          {currentPage === "brand-analysis" && <NavSidebar />}
+          {currentPage === "campaign-analysis" && <CampaignNavSidebar />}
+          {currentPage === "outlet-analysis" && <OutletNavSidebar />}
+          <main className="flex-1 px-6 py-8 space-y-8 max-w-[1200px] mx-auto">
+            {currentPage === "brand-analysis" ? (
+              <DashboardContentProvider content={dashboardContent}>
+                {featureVisibility.statsOverview && <StatsOverview />}
+                {featureVisibility.actionRecommendations && <ActionRecommendations />}
+                {featureVisibility.outletSatisfaction && <OutletCustomerSatisfaction />}
+                {featureVisibility.risksOpportunities && <RisksOpportunities />}
+                {featureVisibility.competitiveAnalysis && <CompetitiveAnalysis />}
+                {featureVisibility.recentInsights && <RecentInsights />}
+              </DashboardContentProvider>
+            ) : currentPage === "campaign-analysis" ? (
+              <DashboardContentProvider content={dashboardContent}>
+                <CampaignAnalysis />
+              </DashboardContentProvider>
+            ) : currentPage === "outlet-analysis" ? (
+              <DashboardContentProvider content={dashboardContent}>
+                <OutletAnalysis />
+              </DashboardContentProvider>
+            ) : (
+              <DashboardContentProvider content={dashboardContent}>
+                <SourceContents instanceId={currentInstanceId} />
+              </DashboardContentProvider>
+            )}
+          </main>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AppContent() {
   const location = useLocation();
   const allowedInstanceIds = useMemo(() => getAllowedInstanceIds(), []);
@@ -61,8 +139,6 @@ function AppContent() {
     if (saved && allowedInstanceIds.includes(saved)) return saved;
     return defaultInstanceId;
   });
-  const [featureVisibility, setFeatureVisibility] = useState<FeatureVisibility>(defaultFeatureVisibility);
-  const [dashboardContent, setDashboardContent] = useState<ReturnType<typeof loadDashboardContent> | null>(null);
 
   useEffect(() => {
     if (!allowedInstanceIds.includes(currentInstanceId) && defaultInstanceId) {
@@ -70,14 +146,6 @@ function AppContent() {
       localStorage.setItem("naradai_current_instance", defaultInstanceId);
     }
   }, [currentInstanceId, defaultInstanceId, allowedInstanceIds]);
-
-  useEffect(() => {
-    const content = loadDashboardContent(currentInstanceId);
-    if (currentPage === "brand-analysis") {
-      setFeatureVisibility(content.featureVisibility ?? defaultFeatureVisibility);
-    }
-    setDashboardContent(content);
-  }, [currentPage, currentInstanceId]);
 
   const handleInstanceChange = (instanceId: string) => {
     setCurrentInstanceId(instanceId);
@@ -97,43 +165,14 @@ function AppContent() {
 
   return (
     <DataFilterProvider initialProjectId={currentInstanceId}>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
-        <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-violet-100/40 via-transparent to-transparent pointer-events-none" />
-        <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-cyan-100/40 via-transparent to-transparent pointer-events-none" />
-        <div className="relative">
-          <Header currentPage={currentPage} onNavigate={setCurrentPage} />
-          <DataControlsBar variant={currentPage === "campaign-analysis" ? "campaign" : "default"} />
-          <div className="flex">
-            {currentPage === "brand-analysis" && <NavSidebar />}
-            {currentPage === "campaign-analysis" && <CampaignNavSidebar />}
-            {currentPage === "outlet-analysis" && <OutletNavSidebar />}
-            <main className="flex-1 px-6 py-8 space-y-8 max-w-[1200px] mx-auto">
-              {currentPage === "brand-analysis" ? (
-                <DashboardContentProvider content={dashboardContent}>
-                  {featureVisibility.statsOverview && <StatsOverview />}
-                  {featureVisibility.actionRecommendations && <ActionRecommendations />}
-                  {featureVisibility.outletSatisfaction && <OutletCustomerSatisfaction />}
-                  {featureVisibility.risksOpportunities && <RisksOpportunities />}
-                  {featureVisibility.competitiveAnalysis && <CompetitiveAnalysis />}
-                  {featureVisibility.recentInsights && <RecentInsights />}
-                </DashboardContentProvider>
-              ) : currentPage === "campaign-analysis" ? (
-                <DashboardContentProvider content={dashboardContent}>
-                  <CampaignAnalysis />
-                </DashboardContentProvider>
-              ) : currentPage === "outlet-analysis" ? (
-                <DashboardContentProvider content={dashboardContent}>
-                  <OutletAnalysis />
-                </DashboardContentProvider>
-              ) : (
-                <DashboardContentProvider content={dashboardContent}>
-                  <SourceContents instanceId={currentInstanceId} />
-                </DashboardContentProvider>
-              )}
-            </main>
-          </div>
-        </div>
-      </div>
+      <AppContentInner
+        currentPage={currentPage}
+        setCurrentPage={setCurrentPage}
+        currentInstanceId={currentInstanceId}
+        onInstanceChange={handleInstanceChange}
+        defaultInstanceId={defaultInstanceId}
+        allowedInstanceIds={allowedInstanceIds}
+      />
     </DataFilterProvider>
   );
 }

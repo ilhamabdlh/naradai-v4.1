@@ -108,7 +108,7 @@ export function OpportunityCard({ opportunity }: OpportunityCardProps) {
   const TrendIcon = opportunity.trend === "increasing" ? TrendingUp : opportunity.trend === "decreasing" ? TrendingDown : Minus;
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-md transition-all h-full">
+    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-md transition-all">
       <div className="p-5">
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1">
@@ -123,7 +123,9 @@ export function OpportunityCard({ opportunity }: OpportunityCardProps) {
               </div>
             </div>
             <h4 className="text-slate-900 mb-1">{opportunity.title}</h4>
-            <p className="text-sm text-slate-600">{opportunity.description}</p>
+            <p className="text-sm text-slate-600 max-h-12 overflow-hidden">
+              {opportunity.description}
+            </p>
           </div>
         </div>
 
@@ -141,24 +143,12 @@ export function OpportunityCard({ opportunity }: OpportunityCardProps) {
             </div>
           </div>
 
-          {/* Number of Supporting Contents */}
-          <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-slate-50 rounded-lg border border-slate-200">
+          {/* Number of Supporting Contents (summary) */}
+          <div className="flex items-center gap-2 mb-2 px-3 py-2 bg-slate-50 rounded-lg border border-slate-200">
             <FileText className="w-4 h-4 text-slate-500" />
             <span className="text-xs text-slate-500">Number of Supporting Contents</span>
             <span className="ml-auto text-sm font-semibold text-slate-900">{opportunity.supportingContents}</span>
           </div>
-
-        {/* Quick Metrics */}
-        <div className="grid grid-cols-2 gap-2 mb-3">
-          <div className="bg-slate-50 rounded-lg p-2.5 border border-slate-200">
-            <div className="text-xs text-slate-500 mb-1">Timeframe</div>
-            <div className="text-sm text-slate-900">{opportunity.timeframe}</div>
-          </div>
-          <div className="bg-slate-50 rounded-lg p-2.5 border border-slate-200">
-            <div className="text-xs text-slate-500 mb-1">Category</div>
-            <div className="text-sm text-slate-900">{opportunity.category}</div>
-          </div>
-        </div>
 
         {/* Expand/Collapse Button */}
         <button
@@ -172,7 +162,19 @@ export function OpportunityCard({ opportunity }: OpportunityCardProps) {
 
       {/* Expanded Details */}
       {isExpanded && (
-        <div className="border-t border-slate-200 bg-slate-50 p-5 space-y-4">
+        <div className="border-t border-slate-200 bg-slate-50 p-5 space-y-4 max-h-80 overflow-y-auto">
+          {/* Quick Metrics (moved into expanded view) */}
+          <div className="grid grid-cols-2 gap-2 mb-2">
+            <div className="bg-white rounded-lg p-2.5 border border-slate-200">
+              <div className="text-xs text-slate-500 mb-1">Timeframe</div>
+              <div className="text-sm text-slate-900">{opportunity.timeframe}</div>
+            </div>
+            <div className="bg-white rounded-lg p-2.5 border border-slate-200">
+              <div className="text-xs text-slate-500 mb-1">Category</div>
+              <div className="text-sm text-slate-900">{opportunity.category}</div>
+            </div>
+          </div>
+
           <div>
             <div className="text-sm text-slate-700 mb-2 flex items-center gap-2">
               <Target className="w-4 h-4 text-emerald-600" />

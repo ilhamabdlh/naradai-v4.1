@@ -3,6 +3,7 @@ import { Database, ArrowUpDown, Twitter, Instagram, Facebook, Star, Newspaper, M
 import { useDashboardContent } from "@/contexts/DashboardContentContext";
 import { bukalapakRawSourceContents } from "@/lib/bukalapak-raw-content";
 import { SourceContentManager } from "./SourceContentManager";
+import { getAuthUser } from "@/lib/auth";
 
 type SortField = string;
 type SortOrder = "asc" | "desc";
@@ -51,9 +52,14 @@ interface SourceContentsProps {
   instanceId: string;
 }
 
+const isAdminBenings = () => getAuthUser()?.username === "admin_benings";
+
 export function SourceContents({ instanceId }: SourceContentsProps) {
   const content = useDashboardContent();
-  const [contentMode, setContentMode] = useState<"manage" | "raw">("manage");
+  const hideContentManagement = isAdminBenings();
+  const [contentMode, setContentMode] = useState<"manage" | "raw">(() =>
+    hideContentManagement ? "raw" : "manage"
+  );
   const [activeTab, setActiveTab] = useState<"social" | "reviews" | "news">("social");
   const [socialSort, setSocialSort] = useState<{ field: SortField; order: SortOrder }>({ field: "date", order: "desc" });
   const [reviewSort, setReviewSort] = useState<{ field: SortField; order: SortOrder }>({ field: "date", order: "desc" });
@@ -386,7 +392,7 @@ export function SourceContents({ instanceId }: SourceContentsProps) {
     [sortedSocial, effectiveSocialPage]
   );
 
-  if (contentMode === "manage") {
+  if (contentMode === "manage" && !hideContentManagement) {
     return (
       <div className="space-y-6">
         <div className="flex justify-end">
@@ -467,13 +473,15 @@ export function SourceContents({ instanceId }: SourceContentsProps) {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setContentMode("manage")}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium text-violet-600 hover:bg-violet-50 border border-violet-200"
-          >
-            <Settings2 className="w-4 h-4" />
-            Kelola data dashboard
-          </button>
+          {!hideContentManagement && (
+            <button
+              onClick={() => setContentMode("manage")}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium text-violet-600 hover:bg-violet-50 border border-violet-200"
+            >
+              <Settings2 className="w-4 h-4" />
+              Kelola data dashboard
+            </button>
+          )}
           <div className="flex items-center gap-2 bg-violet-50 border border-violet-200 rounded-lg px-3 py-2">
             <Sparkles className="w-4 h-4 text-violet-600" />
             <span className="text-sm font-medium text-violet-900">AI-Analyzed Data</span>

@@ -108,7 +108,7 @@ export function RiskCard({ risk }: RiskCardProps) {
   const TrendIcon = risk.trend === "increasing" ? TrendingUp : risk.trend === "decreasing" ? TrendingDown : Minus;
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-md transition-all h-full">
+    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:shadow-md transition-all">
       <div className="p-5">
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1">
@@ -123,7 +123,9 @@ export function RiskCard({ risk }: RiskCardProps) {
               </div>
             </div>
             <h4 className="text-slate-900 mb-1">{risk.title}</h4>
-            <p className="text-sm text-slate-600">{risk.description}</p>
+            <p className="text-sm text-slate-600 max-h-12 overflow-hidden">
+              {risk.description}
+            </p>
           </div>
         </div>
 
@@ -141,28 +143,12 @@ export function RiskCard({ risk }: RiskCardProps) {
             </div>
           </div>
 
-          {/* Number of Supporting Contents */}
-          <div className="flex items-center gap-2 mb-4 px-3 py-2 bg-slate-50 rounded-lg border border-slate-200">
+          {/* Number of Supporting Contents (summary) */}
+          <div className="flex items-center gap-2 mb-2 px-3 py-2 bg-slate-50 rounded-lg border border-slate-200">
             <FileText className="w-4 h-4 text-slate-500" />
             <span className="text-xs text-slate-500">Number of Supporting Contents</span>
             <span className="ml-auto text-sm font-semibold text-slate-900">{risk.supportingContents}</span>
           </div>
-
-        {/* Quick Metrics */}
-        <div className="grid grid-cols-3 gap-2 mb-3">
-          {(risk.indicators ?? []).slice(0, 3).map((indicator, idx) => (
-            <div key={idx} className="bg-slate-50 rounded-lg p-2.5 border border-slate-200">
-              <div className="text-xs text-slate-500 mb-1">{indicator.label}</div>
-              <div className="flex items-center gap-1">
-                <span className="text-sm text-slate-900">
-                  {typeof indicator.value === "number" && indicator.value < 1 && indicator.value > -1
-                    ? indicator.value.toFixed(2)
-                    : indicator.value}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
 
         {/* Expand/Collapse Button */}
         <button
@@ -176,7 +162,28 @@ export function RiskCard({ risk }: RiskCardProps) {
 
       {/* Expanded Details */}
       {isExpanded && (
-        <div className="border-t border-slate-200 bg-slate-50 p-5 space-y-4">
+        <div className="border-t border-slate-200 bg-slate-50 p-5 space-y-4 max-h-80 overflow-y-auto">
+          {/* Quick Metrics (moved into expanded view) */}
+          {(risk.indicators ?? []).length > 0 && (
+            <div>
+              <div className="text-sm text-slate-700 mb-2">Key Indicators</div>
+              <div className="grid grid-cols-3 gap-2">
+                {(risk.indicators ?? []).slice(0, 3).map((indicator, idx) => (
+                  <div key={idx} className="bg-white rounded-lg p-2.5 border border-slate-200">
+                    <div className="text-xs text-slate-500 mb-1">{indicator.label}</div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm text-slate-900">
+                        {typeof indicator.value === "number" && indicator.value < 1 && indicator.value > -1
+                          ? indicator.value.toFixed(2)
+                          : indicator.value}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div>
             <div className="text-sm text-slate-700 mb-2">Impact Assessment</div>
             <div className="bg-white rounded-lg p-3 border border-slate-200">

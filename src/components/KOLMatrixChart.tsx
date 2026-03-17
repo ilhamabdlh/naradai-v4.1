@@ -127,7 +127,7 @@ const defaultKOLData = [
 
 export function KOLMatrixChart() {
   const content = useDashboardContent();
-  const data = (content?.whatsHappeningKOLMatrix?.length ? content.whatsHappeningKOLMatrix : defaultKOLData) as typeof defaultKOLData;
+  const rawData = (content?.whatsHappeningKOLMatrix?.length ? content.whatsHappeningKOLMatrix : defaultKOLData) as typeof defaultKOLData;
   const aiKOL = content?.whatsHappeningAIKOLAnalysis ?? [];
   const defaultInsights = [
     {
@@ -183,6 +183,13 @@ export function KOLMatrixChart() {
     },
   };
 
+  // Jika semua followers = 0 (seperti dataset Benings), pakai engagement sebagai sumbu X
+  const hasNonZeroFollowers = rawData.some((d) => (d.followers ?? 0) > 0);
+  const data = rawData.map((d) => ({
+    ...d,
+    xMetric: hasNonZeroFollowers ? d.followers : d.engagement,
+  }));
+
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
@@ -217,14 +224,16 @@ export function KOLMatrixChart() {
           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
           <XAxis 
             type="number" 
-            dataKey="followers" 
-            name="Followers"
+            dataKey="xMetric" 
+            name={hasNonZeroFollowers ? "Followers" : "Engagement"}
             stroke="#64748b"
             style={{ fontSize: '12px' }}
-            tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`}
+            tickFormatter={(value) =>
+              hasNonZeroFollowers ? `${(value / 1000).toFixed(0)}K` : `${(value / 1000).toFixed(1)}K`
+            }
           >
             <Label 
-              value="Number of Followers" 
+              value={hasNonZeroFollowers ? "Number of Followers" : "Engagement Volume"} 
               position="bottom" 
               style={{ textAnchor: 'middle', fill: '#64748b', fontSize: '12px' }}
               offset={20}

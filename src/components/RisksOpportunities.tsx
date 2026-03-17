@@ -14,7 +14,7 @@ export function RisksOpportunities() {
   const opportunities = content?.opportunities ?? [];
 
   return (
-    <section id="risks-opportunities">
+    <section id="risks-opportunities" className="mb-10">
       <div className="flex items-center gap-3 mb-6">
         <ShieldAlert className="w-6 h-6 text-violet-600" />
         <div>
@@ -33,7 +33,7 @@ export function RisksOpportunities() {
               {risks.length} Active
             </span>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-4 max-h-[320px] overflow-y-auto">
             {risks.map((risk) => (
               <RiskCard key={risk.id} risk={risk} />
             ))}
